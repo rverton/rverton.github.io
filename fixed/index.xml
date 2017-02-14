@@ -10,11 +10,11 @@
     <atom:link href="http://robinverton.de/fixed/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>Code &amp; Projects</title>
-      <link>http://robinverton.de/code--projects/</link>
+      <title>code</title>
+      <link>http://robinverton.de/code/</link>
       <pubDate>Tue, 14 Feb 2017 10:49:43 +0100</pubDate>
       
-      <guid>http://robinverton.de/code--projects/</guid>
+      <guid>http://robinverton.de/code/</guid>
       <description>&lt;p&gt;&lt;strong&gt;.projects&lt;/strong&gt;&lt;/p&gt;
 
 &lt;ul&gt;
