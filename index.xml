@@ -10,11 +10,11 @@
     <atom:link href="http://robinverton.de/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>Code</title>
-      <link>http://robinverton.de/code/</link>
+      <title>Code &amp; Projects</title>
+      <link>http://robinverton.de/code--projects/</link>
       <pubDate>Tue, 14 Feb 2017 10:49:43 +0100</pubDate>
       
-      <guid>http://robinverton.de/code/</guid>
+      <guid>http://robinverton.de/code--projects/</guid>
       <description>&lt;p&gt;&lt;strong&gt;.projects&lt;/strong&gt;&lt;/p&gt;
 
 &lt;ul&gt;
@@ -33,6 +33,19 @@
 
 &lt;ul&gt;
 &lt;li&gt;coming soon&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;.advisories&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/518466&#34;&gt;myBloggie 2.1.6 SQL-Injection&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/416684&#34;&gt;Affiliate Network Pro v7.2 SQL-Injection, Arbitrary Code Execution, XSS&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2005-3571&#34;&gt;Codegrrl Protection.PHP Unspecified Code Execution Vulnerability&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/417174&#34;&gt;PHP-Fusion &amp;lt;= 6.00.206 Multiple Vulnerabilities&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/424957/30/0/threaded&#34;&gt;dotproject &amp;lt;= 2.0.1 remote code execution&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://securityreason.com/securityalert/2337&#34;&gt;WebSpell &amp;gt; 4.0 Authentication Bypass and arbitrary code execution&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://securitytracker.com/alerts/2005/Sep/1014866.html&#34;&gt;WEB//NEWS SQL Injection&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/410314/30/0/threaded&#34;&gt;PHP Nuke &amp;lt;= 7.8 Multiple SQL Injections&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 </description>
     </item>
