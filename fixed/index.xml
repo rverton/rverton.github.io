@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Fixed on Robin Verton</title>
+    <link>http://robinverton.de/fixed/index.xml</link>
+    <description>Recent content in Fixed on Robin Verton</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de-de</language>
+    <lastBuildDate>Tue, 14 Feb 2017 10:49:43 +0100</lastBuildDate>
+    <atom:link href="http://robinverton.de/fixed/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Code</title>
+      <link>http://robinverton.de/code/</link>
+      <pubDate>Tue, 14 Feb 2017 10:49:43 +0100</pubDate>
+      
+      <guid>http://robinverton.de/code/</guid>
+      <description>&lt;p&gt;&lt;strong&gt;.projects&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/dtag-dev-sec/explo&#34;&gt;explo&lt;/a&gt; - machine and human readable web exploits&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/xssmap&#34;&gt;xssmap&lt;/a&gt; - (DOM)XSS scanner&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/webanalyze&#34;&gt;webanalyze&lt;/a&gt; - Uncovers technologies used on websites.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;.exploits&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&#34;&gt;cowroot.c&lt;/a&gt; - first weaponized DirtyCow exploit&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;.ctf&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;coming soon&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

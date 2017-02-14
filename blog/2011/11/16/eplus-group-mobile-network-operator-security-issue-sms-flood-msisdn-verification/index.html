@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     EPLUS Group (mobile network operator) security issue (SMS flood, MSISDN verification) 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2011/11/16/eplus-group-mobile-network-operator-security-issue-sms-flood-msisdn-verification/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    EPLUS Group (mobile network operator) security issue (SMS flood, MSISDN verification)
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Wed Nov 16 2011 15:48:45 CET'>Nov 16, 2011</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>2 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                <p>Some months ago (16th of Sep.) I found a security issue on an EPLUS service page,
+which allows you to send as much SMS as you want to their customers (only numbers from the EPLUS group are affected) with a special message.</p>
+
+<p>During my tests I found that the only limit you are faced with in sending SMS is the bandwidth of your connection/their server. The SMS is send
+by a service hotline number and can not be traced back to you. The SMS-sending is triggered by a simple GET-request to their server.</p>
+
+<p><img src="http://robinverton.de/static/eplus-sms-1.png" alt="" /></p>
+
+<p>Because I could not find any suitable address for security related issues (or in other words: sadly there is no address for topics like this), I had to write several emails to their customer support to get an response so my findings were forwarded.</p>
+
+<p>A few weeks later I received a phone call from a member of their technical service. He told me that I was absolutely right and that they are going to have a closer look on my findings. Two months have passed now, and except of a 5€ gift card I received (wow!), nothing happened. I will keep an eye on this and post additional informations on this issue when their team released a fix.</p>
+
+<p>For the sake of completeness I also found a XSS vulnerability on their page. To make sure I will not overload their technical team with work I will wait to send this issue until they fixed the first one :]</p>
+
+<p><strong>Update</strong>: It is also possible to figure out if a given mobile number (MSISDN) inside the eplus network is valid or not. This is a big issue because spammers can guess all possible variations of mobile numbers, check if they are valid and make a list of correct numbers. (Note: According to <a href="http://en.wikipedia.org/wiki/E-Plus">wikipedia</a>, the eplus group has about 22.1 million subscribers!)</p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Drupal Security Scanner 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2012/10/23/drupal-security-scanner/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Drupal Security Scanner
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Tue Oct 23 2012 15:52:05 &#43;0100'>Oct 23, 2012</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>2 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                
+
+<h3 id="dpscan-py-to-drupalscan">DPscan.py to DrupalScan</h3>
+
+<p>Recently I was in the need of a simple &ldquo;drupal security scanner&rdquo; which enumerates all modules of a drupal project so I can do a source code audit on them.
+The only thing I could found for this were some you-have-to-be-a-member sites and a script called WPscan.py. Because the author&rsquo;s site of the script was not accessible I decided to write an own little tool in ruby which can be easily plugged into another project I&rsquo;m currently realising.</p>
+
+<h3 id="drupalscan">DrupalScan</h3>
+
+<p>DrupalScan can be installed via rubygems:</p>
+
+<pre><code class="language-bash">$ gem install DrupalScan
+</code></pre>
+
+<p>You can also find <a href="http://github.com/rverton/DrupalScan">this project on github</a>.</p>
+
+<p>After installation you can use it directly in the command line or by requiring the lib.</p>
+
+<h3 id="command-line-usage">Command Line Usage</h3>
+
+<pre><code class="language-bash">$ DrupalScan -h                  
+Usage: DrupalScan &lt;url&gt; [--no-module-lookup]
+    -u, --url URL                    URL of drupal project. Example: http://drupal.org
+    -n, --no-module-lookup           Disable module lookup on drupal.org
+    -h, --help                       Show this help
+$ DrupalScan -u http://drupal.org
+Version: Drupal 6.26, 2012-05-02
+Found 'flot'
+ -&gt; This module provides an API and views integration for using the flot graphing library. It is designed to make it simple to add flot graphs or charts, it supports line, bar and pie charts.http://drupal.org/project/flot
+
+Found 'drupalorg'
+ -&gt; Customizations used on drupal.org itself.  It is not meant to be useful to other sites, except as an educational example of the kinds of modifications you can make via a site-specific module.http://drupal.org/project/drupalorg
+
+Found 'token'
+ -&gt; Tokens are small bits of text that can be placed into larger documents via simple placeholders, like %site-name or [user]. The Token module provides a central API for modules to use these tokens, and expose their own token values.http://drupal.org/project/token
+
+Found 'httpbl'
+ -&gt; Implementation of http:BL for Drupal. http:BL can prevent email address harvesters and comment spammers from visiting your site by using a centralized DNS blacklist. It requires a free Project Honey Pot membership. This module provides efficient blacklist lookups and blocks malicious visitors effectively.http://drupal.org/project/httpbl
+</code></pre>
+
+<h3 id="using-drupalscan-in-your-own-script">Using DrupalScan in your own script</h3>
+
+<pre><code class="language-ruby">require 'DrupalScan'
+version = DrupalScan::getVersion(&quot;http://drupal.org&quot;)
+modules = DrupalScan::enumerateModules(&quot;http://drupal.org&quot;)
+</code></pre>
+
+<p>Feel free to fork.</p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

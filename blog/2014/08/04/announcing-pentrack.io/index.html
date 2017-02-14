@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Announcing pentrack.io 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2014/08/04/announcing-pentrack.io/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Announcing pentrack.io
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Mon Aug 4 2014 15:57:16 &#43;0100'>Aug 4, 2014</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>4 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                
+
+<p>It&rsquo;s been a long time I&rsquo;m working on this and I&rsquo;m happy to announce my new project: <a href="http://pentrack.io">pentrack.io</a>.</p>
+
+<p>PenTrack is a server platform to track found issues during a security audit. Categorize and classify your issues, document them and invite your customer so they can flag issues as fixed. There is a lot of more, so if you are interested I suggest you to take a look at it and register for a free trial.</p>
+
+<p><img src="http://robinverton.de/static/pentrack-1.png" alt="" /></p>
+
+<p>I also wrote a Chrome Browser extension to directly add requests from the chrome developer tools to your pentrack project. The intent was to make it extremly easy and fast to add found issues. Just select your request and choose if you want to add a screenshot.</p>
+
+<p><img src="http://robinverton.de/static/pentrack-2.png" alt="" /></p>
+
+<p>The key features of PenTrack are already implemented. I still have a lot of additional ideas I want to integrate in the future. However, I first want to see if there is at least <em>some</em> interest in this idea/product before I continue to put a lot of my free time in this.</p>
+
+<p>Some features I want to integrate in the future:</p>
+
+<ul>
+<li>JIRA/Trac/Bugzilla/Trello integration</li>
+<li>Time-tracking</li>
+<li>Prepare audit (assign scopes, select schedule, trigger automated software)</li>
+<li>NDA automatization (preparation and sending to involved member/customer)</li>
+<li>GIST for security issues (You want to publicly discuss an issue? Publish it as simple as posting a gist)</li>
+</ul>
+
+<p>I&rsquo;m open for more ideas and requests, just drop me an email.</p>
+
+<h2 id="tech-stack">Tech stack</h2>
+
+<p>For those of you who are interested in the tech behind, here is some more info about the setup.</p>
+
+<h4 id="server-component">Server component</h4>
+
+<p>The main component of PenTrack is written in Go and based on the <a href="https://github.com/go-martini/martini">Martini Framework</a>. The main reason why I used Go is the ability to offer a (binary) standalone version, so customers can run an instance inside their network without needing to send sensitive data over the internet. Go makes cross-compiling and deploying with a single binary extremly easy. To ship the standalone version I just have to zip the binary with some resources (web interface), so except setting up a config file there is no additional installation/configuration needed.</p>
+
+<p>Routing with the martini framework and dynamic middleware handlers saved a lot of time and code for me. Routes currently look like this:</p>
+
+<pre><code class="language-go">	// PUT /:issueId
+	router.Put(&quot;/:iid&quot;,
+    	csrf.Validate,
+		ProjectAccess(ACCESS_READ),
+		IssueUpdate)
+</code></pre>
+
+<p>There are two middlewares involved here, one for doing the CSRF validation and a second one checking for sufficient permissions to the project. I like this approach because I can set required permissions on route definition. This makes it a lot easier for me to ensure all routes are just accessible by the users who have the permission for this.</p>
+
+<h4 id="frontend">Frontend</h4>
+
+<p>The frontend is based on AngularJS, expanded with a lot of small libraries (e.g. D3 or moment.js). I also considered using Facebook&rsquo;s React, but AngularJS seemed a bit more mature for me when I started the project, especially in terms of their documentation and available extensions. I like to completly separate the server component from the frontend, so they are decoupled and communicating over REST.</p>
+
+<p>I also added an experimental feature called &lsquo;Client-Side Encryption&rsquo; to be able to encrypt issue data before it is sent to the server. Before saving (and sending the data to the server), a javascript service encrypts specific issue data (URI, Title, Data, &hellip;) with the <a href="http://bitwiseshiftleft.github.io/sjcl/">Stanford Javascript Crypto Library</a>. I know that javascript encryption <a href="https://news.ycombinator.com/item?id=2935220">is not the best idea</a>, but it&rsquo;s some additional protection if you dont trust raw issue data on a remote server. The main point here is not ensuring no one is sniffing the content (thats what the HTTPS connection is for), it&rsquo;s to minimise the risk of leaking sensitive data in case of a server hack. However, this feature is experimental and I&rsquo;m happy to hear your thoughts on this. If you need the full security there is a standalone version available.</p>
+
+<h4 id="server-and-domain-hosting">Server and domain hosting</h4>
+
+<p>Because I already had a good experience with <a href="https://www.digitalocean.com/">DigitalOcean</a> and they have nice prices I choose to serve the landing page and the web interface on digitalocean.</p>
+
+<p>The domain was hosted on <a href="https://www.gandi.net">Gandi</a> because I found a few good recommendations on HN about them. Also their price for .io domains ($30) is cheaper in comparison to my current <a href="https://www.united-domains.de/domain-registrieren/preisliste/">United Domains</a>.</p>
+
+<p>So far thats the basic architecture. If there are more questions feel free to <a href="mailto:robin@pentrack.io">mail me</a>.
+/robin</p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Simple GET/POST Crawler (Python) 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2011/06/30/simple-get/post-crawler-python/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Simple GET/POST Crawler (Python)
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Thu Jun 30 2011 15:47:08 &#43;0100'>Jun 30, 2011</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>2 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                <p>Some weeks ago I wrote a little tool to support me when analysing webpages. The python tool recursive crawls all links from a page, collects the GET-Parameter and filters out the FORM-Data. Simple!
+The actual crawling- and parsing-method is located in the <em>LinkCrawler.py</em> which makes use of the <a href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> library. You can easily include it in your own scripts:</p>
+
+<pre><code class="language-python">links =	 LinkCrawler.LinkCrawler(url, layer=1, quiet=False)
+</code></pre>
+
+<p>I also added a little script to use it as a command line tool:</p>
+
+<pre><code class="language-bash">python rAnlyzr.py -u &lt;url&gt; [-l layer] [-q]
+
+-u &lt;url&gt;		Specifies the URL. Format: http://example.com/
+-l &lt;layer&gt;		Layers to crawl. Default = 1
+-q				Quiet. Do not print crawled URL's
+-h				Print this help
+
+Example: python rAnlyzr.py -u http://robinverton.de/
+</code></pre>
+
+<p>Example Output:</p>
+
+<pre><code class="language-bash">$ python rAnlyzr.py -u robinverton.de -q
+#########################################
+# rAnzlyr v0.1 - Simple GET/POST Filter	#
+# Jun. 2011 - Robin Verton    				  #
+# http://robinverton.de				      	  #
+#########################################
+
+- /blog/
+- /blog/hello-blog
+- /hireme
+- /blog/advanced-insert-into-injection-by-taking-advantage-of-the-primary-key
+- /blog/recent.atom
+- /blog/category/it-security
++ P /imprint
++	csrf
++	name
++	email
++	submit
+- /whatido
+- /
+- /blog/category/other
+- /blog/category/penetrationtesting
++ P /blog/addcomment/2
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
++ P /blog/addcomment/3
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
+- /blog/mybloggie-2-1-6-sql-injection-persistent-xss
+- /blog/category/advisories-publications
++ P /blog/addcomment/1
++	csrf
++	author_name
++	author_email
++	author_web
++	submit
+- /imprint
+- /blog/category/python-tools
+</code></pre>
+
+<p><strong>Note: P indicates a FORM</strong></p>
+
+<p>Download <a href="http://robinverton.de/static/files/rAnlyzr_v0.1.tar.gz" title="rAnlyzr_v0.1">here</a></p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

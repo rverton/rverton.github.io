@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Be careful when going client only (Firebase) 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2013/08/27/be-careful-when-going-client-only-firebase/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Be careful when going client only (Firebase)
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Tue Aug 27 2013 15:53:25 &#43;0100'>Aug 27, 2013</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>4 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                
+
+<h3 id="firebase-the-scalable-real-time-backend">Firebase, the scalable real-time backend</h3>
+
+<p>Developing client-only applications with JavaScript and services like Firebase offer a nice way to &ldquo;build apps without managing servers&rdquo;. However, sometimes it&rsquo;s not a bad idea to have some controlling server between your client and your data storage.</p>
+
+<p>When recently browsing over firebase.com and looking at one of their <a href="https://www.firebase.com/tutorial/#example/presence">code examples</a> to get a simple overview of their service, I was surprised how easy it is for clients to interact with the data storage/backend.</p>
+
+<p>The code example I had a look at is a service to show &ldquo;online presence&rdquo; of users. Whenever a user visits the page, he is prompted for a name which is then saved in the data storage and therefore also send to all users which use this firebase reference (usually all users on a page would use the same reference so you can see all users which are currently online).</p>
+
+<p>Establishing a connection to the Firebase-Reference is a simple one-liner in Javascript:</p>
+
+<pre><code class="language-javascript">var userListRef = new Firebase(&quot;https://v47p4chbar8.firebaseio-demo.com/&quot;);
+</code></pre>
+
+<p>This reference allows the client to sent/update/remove data in the data storage. Easy!
+The first thing which came to my mind is the possibility of an attacker to flood the online presence list. Let&rsquo;s try this. Pop up your developer console, open the Javascript console and try the following:</p>
+
+<pre><code class="language-javascript">userListRef = new Firebase(&quot;https://v47p4chbar8.firebaseio-demo.com/&quot;);
+for(i=0;i&lt;100;i++){
+    userListRef.push().set({name:i, status:i})
+}
+</code></pre>
+
+<p>Four lines of code, 100 online users. Not bad, right?
+Note: A real use case could make use of firebase security rules, so only authenticated users can be present. The chat application, which is a more realistic use case, is also floodable. Are there security rules to prevent this massive flooding?</p>
+
+<p>Let&rsquo;s dig a bit deeper in the source. I had hoped to find something where I can directly inject some HTML over the name or status, but when you look at how a name/status is added, you can see that the jquery .text(var) function is used, so you can&rsquo;t inject HTML here:</p>
+
+<pre><code class="language-javascript">userListRef.on(&quot;child_added&quot;, function(snapshot) {
+    var user = snapshot.val();
+    $(&quot;#presenceDiv&quot;).append($(&quot;&lt;div/&gt;&quot;).attr(&quot;id&quot;, snapshot.name()));
+    $(&quot;#&quot; + snapshot.name()).text(user.name + &quot; is currently &quot; + user.status);
+});
+</code></pre>
+
+<p>But this 4th line looked interesting. They are using snapshot.name() in the jQuery-Selector. The .name() function does not return the previously set name, but it returns the name of the child location (the one which is set automatically by calling .push()). BUT.. You can set this by yourself.. ;)
+So lets get back to our developer console:</p>
+
+<pre><code class="language-javascript">userListRef.child(&quot;foo,body&quot;).set({name:&quot;I'm the new Body-Content.&quot;})
+</code></pre>
+
+<p>Using the command above, the following is executed at each client:</p>
+
+<pre><code class="language-javascript">$('#foo,body').text(...)
+</code></pre>
+
+<p>So we are setting the content of #foo (does not exist) and &lt;body&gt; (does exist). The whole body is now replaced! Let&rsquo;s revert this:</p>
+
+<pre><code class="language-javascript">userListRef.child(&quot;foo,body&quot;).remove();
+</code></pre>
+
+<p>Which is executed in the following lines on the client:</p>
+
+<pre><code class="language-javascript">userListRef.on(&quot;child_removed&quot;, function(snapshot) {
+    $(&quot;#&quot; + snapshot.name()).remove();
+});
+</code></pre>
+
+<p>Oh, we just removed the &lt;body&gt; off all ours clients..</p>
+
+<p>Sadly (for us) Firebase used jQuery 1.9, which is not affected by the selector xss bug. Otherwise we could have executed code to all other users with this simple line:</p>
+
+<pre><code class="language-javascript">userListRef.child(&quot;foo,&lt;img src=x onerror=alert(1)&gt;&quot;).set({name:1})
+</code></pre>
+
+<h3 id="checking-firebase-customers">Checking Firebase customers</h3>
+
+<p>As I mentioned above, Firebase allows users to add <a href="https://www.firebase.com/docs/security/security-rules.html">security rules</a> to restrict access. However, I had a quick look at some of their listed Customers to inspect if they are using their security rules correct.</p>
+
+<p>I just checked some customers which are using Firebase before I need to register to their service, so I could have a quick look at their setup.</p>
+
+<p>After I found the Firebase-Reference on the first page, I opened my dev console and tried to attach to their data. I&rsquo;ve never access user data so easy..</p>
+
+<p><img src="http://robinverton.de/static/firebase-1.png" alt="" /></p>
+
+<p>So lets check a second customer listed on their Customers page:</p>
+
+<p><img src="http://robinverton.de/static/firebase-2.png" alt="" /></p>
+
+<p>While it is super easy and fast to develop apps with firebase, it looks like some developers do not take the extra effort to set up security rules. Maybe Firebase should take the initiative and <em>require</em> security rules to be set.</p>
+
+<p>Replacing your backend with a cloud backend is a nice way to go. But keep in mind that you do not only have to validate data coming from the client. You also should validate data coming from your data store now. And please do not forget to set up rules, because making data not visible to the user is not the same as restricting access to the data, especially when we are talking about a client accessible data storage.</p>
+
+<p>Note: I already contacted Firebase and one of their customers regarding the issues a few days ago. The second page had no contact information.</p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

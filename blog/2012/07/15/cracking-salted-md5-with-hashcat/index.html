@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Cracking salted MD5 with Hashcat 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2012/07/15/cracking-salted-md5-with-hashcat/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Cracking salted MD5 with Hashcat
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Sun Jul 15 2012 15:49:36 &#43;0100'>Jul 15, 2012</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>3 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                
+
+<p>Some days ago during a pentest I found a critical sql injection vulnerability which gave me access to the user database. Most of the time finding this kind of vulnerability and extracting some data from the database is enough as an proof of concept, but in this particular pentest I needed to gain access to the backend administration.</p>
+
+<p>Sadly there was no way to insert data into the user table so it was not possible to create an admin account for me. I decided to dump a few entries from the user table and take a look at the encryption. The user table was in the format</p>
+
+<pre><code># Database dump (format)
+USERNAME;EMAIL;RIGHTS;SALT;HASH
+</code></pre>
+
+<pre><code># Example row
+john;john@foo.com;admin;OPHQOEF;U04b5bbcf6570b3172657c4c93f2a28eb
+</code></pre>
+
+<h3 id="cutting-for-hashcat">Cutting for hashcat</h3>
+
+<p>It was pretty obvious that the password was hashed with MD5, so there was no need to run it through hash_id.py.
+The first thing I had to do was to bring it to the right format to pass it to hashcat:</p>
+
+<pre><code class="language-bash">rv% cat /security/220812_db_dump | awk &quot;-F;&quot; '{print $5 &quot;:&quot; $4}' &gt; /security/blog_crackme
+</code></pre>
+
+<p><em>Note: The awk -F argument specifies the field seperator (in our case the &lsquo;;&rsquo; which seperates our columns).</em></p>
+
+<p>Our list is now in the format <em>hash:salt</em> so we can now pass it to hashcat:</p>
+
+<h3 id="crack-it">Crack it</h3>
+
+<pre><code class="language-bash">rv% ./hashcat-cli64.app -m 10 -a 0 /security/blog_crackme /security/wordlist
+</code></pre>
+
+<p><strong>-m 10</strong> specifies the hash-type. Running &ndash;help will print you a full list of supported types. Because I guessed that it&rsquo;s a simple $salt + $pass or $pass + $salt there were only two suitable candidates:</p>
+
+<pre><code class="language-bash">10 = md5($pass.$salt)
+20 = md5($salt.$pass)
+</code></pre>
+
+<p><strong>-a 0</strong> defines the attack mode. There are six modes which you can choose one from:</p>
+
+<pre><code>0 = Straight (just the word found in $wordlist: foobar)
+1 = Combination (words combinated: foobar)
+2 = Toggle-Case (toggled case: Foobar, FOobar, FOObar, ...)
+3 = Brute-force (tries all combinations from a given keyspace)
+4 = Permutation (permutations like abc, acb, bac, ...)
+5 = Table-Lookup (read [here](http://hashcat.net/wiki/doku.php?id=table_lookup_attack))
+</code></pre>
+
+<p>I choosed <em>0</em> to do a straight attack. One account was all I needed so I hoped for a fast result through my wordlist.</p>
+
+<h3 id="results">Results</h3>
+
+<pre><code class="language-bash">rv% ./hashcat-cli64.app -m 10 -a 0 /security/blog_crackme /security/wordlist
+Initializing hashcat v0.40 by atom with 8 threads and 32mb segment-size...
+
+NOTE: press enter for status-screen
+
+Added hashes from file /security/blog_crackme: 38 (38 salts)
+65ae1d0cf8e9634e49da735708a75171:DAQLHMBM:1980
+63208de564208a200f473c61a62b902a:QXYDVONY:sunshine
+82bcf418ec8e4139e0331e49e40d73c9:NWTWIXNJ:blablabla
+Input.Mode: Dict (/security/wordlist)
+Index.....: 1/1 (segment), 2854263 (words), 31746845 (bytes)
+Recovered.: 3/38 hashes, 3/38 salts
+Speed/sec.: 13.96M plains, 398.73k words
+Progress..: 2854263/2854263 (100.00%)
+Running...: 00:00:00:07
+Estimated.: --:--:--:--
+Started: Mon Aug 27 11:09:08 2012
+Stopped: Mon Aug 27 11:09:15 2012
+</code></pre>
+
+<p>Luckily my first guess with the hash type ($pass + $salt) was the right one so I got some great results. I was able to login with the cracked credentials. Mission complete ;-)</p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

