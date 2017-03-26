@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ctf on Robin Verton</title>
+    <link>http://robinverton.de/ctf/index.xml</link>
+    <description>Recent content in Ctf on Robin Verton</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de-de</language>
+    <lastBuildDate>Sun, 26 Mar 2017 13:15:12 +0200</lastBuildDate>
+    <atom:link href="http://robinverton.de/ctf/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>VolgaCTF, web200 (Share Point)</title>
+      <link>http://robinverton.de/ctf/volgactf-web200-sharepoint/</link>
+      <pubDate>Sun, 26 Mar 2017 13:15:12 +0200</pubDate>
+      
+      <guid>http://robinverton.de/ctf/volgactf-web200-sharepoint/</guid>
+      <description>
+
+&lt;p&gt;The only accessible page for Share Point was a login form. After fiddling with the login, I noticed that you were able to
+login with some basic credentials like &lt;code&gt;admin1111:password&lt;/code&gt; or &lt;code&gt;admin11111:password&lt;/code&gt;. In the member area we had three possibilities:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Upload a file&lt;/li&gt;
+&lt;li&gt;View Files&lt;/li&gt;
+&lt;li&gt;Shared Files&lt;/li&gt;
+&lt;li&gt;Logout&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;I tried first to upload some .php files, which did not work (only some formats like .jpg or .txt were allowed). After you have uploaded
+a file, you were able to share this file with a second user. This user could &amp;ldquo;accept&amp;rdquo; this file, which was then moved to the second users&amp;rsquo; folder. This is also where I found the first vulnerability. When accepting a shared file, it was possible to modify the filename parameter and upload any file you want from the underlying system. I tried to find the flag with this, but my guesswork was not successfull.&lt;/p&gt;
+
+&lt;h2 id=&#34;adding-a-php-handler-for-text-files&#34;&gt;Adding a PHP handler for text files&lt;/h2&gt;
+
+&lt;p&gt;Next I moved PHP files from the application itself into my folder (&lt;code&gt;/files/&amp;lt;username&amp;gt;/&amp;lt;filename&amp;gt;&lt;/code&gt;), but they were resulting in &lt;code&gt;500 Internal Server Errors&lt;/code&gt;. I then had the idea to upload a .htaccess file and enable the PHP interpreter for a file extension I was allowed to upload (for example a .txt file). This surprisingly worked! I created the following .htaccess file:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;AddType application/x-httpd-php .txt
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After upload this, I also submtited a foo.txt file with the following content:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;&amp;lt;?php system($_GET[&#39;c&#39;]); ?&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Voilâ, we got a remote command executing:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/sharepoint2_small.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The flag was found under &lt;code&gt;/opt/flag.txt&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;VolgaCTF{AnoTHer_apPro0ch_to_file_Upl0Ad_with_PhP}
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>nullcon 2017, pwn200</title>
+      <link>http://robinverton.de/ctf/nullcon17-pwn200/</link>
+      <pubDate>Sun, 12 Feb 2017 13:48:18 +0200</pubDate>
+      
+      <guid>http://robinverton.de/ctf/nullcon17-pwn200/</guid>
+      <description>&lt;p&gt;Exploitation was straight forward by abusing a format string vulnerability to overwrite .got. The &lt;code&gt;strchr&lt;/code&gt; was called immediately after the printf call with our passed string as an argument, so it was only needed to overwrite this with the address of &lt;code&gt;system&lt;/code&gt;.&lt;/p&gt;
+
+&lt;script src=&#34;//gist.github.com/rverton/5164f9ffa7ff5cadbe130ea9ac24d42a.js&#34;&gt;&lt;/script&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

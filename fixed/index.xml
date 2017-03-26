@@ -10,17 +10,17 @@
     <atom:link href="http://robinverton.de/fixed/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>code</title>
-      <link>http://robinverton.de/code/</link>
+      <title>stuff</title>
+      <link>http://robinverton.de/stuff/</link>
       <pubDate>Tue, 14 Feb 2017 10:49:43 +0100</pubDate>
       
-      <guid>http://robinverton.de/code/</guid>
+      <guid>http://robinverton.de/stuff/</guid>
       <description>&lt;p&gt;&lt;strong&gt;.projects&lt;/strong&gt;&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/dtag-dev-sec/explo&#34;&gt;explo&lt;/a&gt; - machine and human readable web exploits&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/rverton/xssmap&#34;&gt;xssmap&lt;/a&gt; - (DOM)XSS scanner&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/webanalyze&#34;&gt;webanalyze&lt;/a&gt; - Uncovers technologies used on websites.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/webanalyze&#34;&gt;webanalyze&lt;/a&gt; - uncovers technologies used on websites.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;&lt;strong&gt;.exploits&lt;/strong&gt;&lt;/p&gt;
@@ -32,7 +32,8 @@
 &lt;p&gt;&lt;strong&gt;.ctf&lt;/strong&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;coming soon&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/volgactf-web200-sharepoint/&#34;&gt;VolgaCTF, web200 (SharePoint)&lt;/a&gt; - abusing a file upload&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/nullcon17-pwn200/&#34;&gt;nullcon 2017, pwn200&lt;/a&gt; - format string .got overwrite&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;&lt;strong&gt;.advisories&lt;/strong&gt;&lt;/p&gt;

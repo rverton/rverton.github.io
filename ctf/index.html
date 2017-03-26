@@ -14,10 +14,10 @@
 <title>
 
 
-     CVE-2016-5195 (Dirtycow) Local Root PoC 
+     Ctf 
 
 </title>
-<link rel="canonical" href="http://robinverton.de/blog/2016/10/23/cve-2016-5195-dirtycow-local-root-poc/">
+<link rel="canonical" href="http://robinverton.de/ctf/">
 
 
 
@@ -52,6 +52,8 @@
 >
 
 
+
+  <link href="http://robinverton.de/ctf/index.xml" rel="alternate" type="application/rss+xml" title="Robin Verton" />
 
 
 
@@ -107,57 +109,32 @@
     </div>
 </section>
 
-
-<section class="main post non-narrow zero-top-spacing">
+<section class="main">
     <div class="container">
         <div class="content">
-            <div class="front-matter">
-                <div class="title-container">
-                    <div class="page-heading">
-
-    CVE-2016-5195 (Dirtycow) Local Root PoC
-
-</div>
-
-                    <div class="initials"><a href="http://robinverton.de/"></a></div>
-                </div>
-                <div class="meta">
-                    
-                    <div class="date" title='Sun Oct 23 2016 16:00:29 &#43;0100'>Oct 23, 2016</div>
-                    
-                    
-                    <div class="reading-time"><div class="middot"></div>1 minute read</div>
-                    
-                </div>
-            </div>
-            <div class="markdown">
-                <p>After the proof of concept code for CVE-2016-5195 (<a href="https://dirtycow.ninja/">DirtyCow</a>) was released, the game was on to &lsquo;weaponize&rsquo; this PoC to a full local root privilege escalation. Because this bug was <a href="https://www.youtube.com/watch?v=kEsshExn7aE">not that complicated</a>, I began working on a simple modified version which is able to spawn a root shell.</p>
-
-<p>My initial idea was something like this:</p>
-
-<ol>
-<li>Get the size of a SUID binary and make a backup.</li>
-<li>Overwrite this binary with a simple shell (ELF file) plus padding (so it&rsquo;s the same size as the SUID binary).</li>
-<li>Execute our new shell.</li>
-</ol>
-
-<p>After some trial and error I got stable version on some systems, however on a few others the kernel crashes after some seconds. I was not able to fix this, maybe someone else can achieve it with a different technique. There is a list of a few more PoC&rsquo;s available on the <a href="https://github.com/dirtycow/dirtycow.github.io/wiki/PoCs">official DirtyCow repository</a> (yeah, mine is also there).</p>
-
-<p><img src="http://robinverton.de/static/cowroot.jpg" alt="" /></p>
-
-<p>You can view my proof of concept here: <a href="https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679">https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679</a></p>
-
-                <br>
-                <p><a href="http://robinverton.de/blog/">Back to posts</a></p>
-            </div>
-            <br>
-            <div class="disqus">
+            <div class="page-heading">Blog</div>
+            <ul>
                 
-            </div>
+                <li class="post-item">
+    
+    <span class="meta"><time datetime='2017-03-26T13:15:12&#43;02:00'>Mar 26, 2017</time></span>
+    
+    <a href="http://robinverton.de/ctf/volgactf-web200-sharepoint/"><span>VolgaCTF, web200 (Share Point)</span></a>
+</li>
+
+                
+                <li class="post-item">
+    
+    <span class="meta"><time datetime='2017-02-12T13:48:18&#43;02:00'>Feb 12, 2017</time></span>
+    
+    <a href="http://robinverton.de/ctf/nullcon17-pwn200/"><span>nullcon 2017, pwn200</span></a>
+</li>
+
+                
+            </ul>
         </div>
     </div>
 </section>
-
 
 
 
@@ -173,4 +150,5 @@
 
 </body>
 </html>
+
 
