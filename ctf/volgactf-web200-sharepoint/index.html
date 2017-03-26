@@ -35,11 +35,11 @@
 
 
     
-    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1490545727">
-    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1490545727">
-    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1490545727">
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1490546104">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1490546104">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1490546104">
     
-        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1490545727">
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1490546104">
     
 
 
@@ -129,8 +129,7 @@ login with some basic credentials like <code>admin1111:password</code> or <code>
 <li>Logout</li>
 </ul>
 
-<p>I tried first to upload some .php files, which did not work (only some formats like .jpg or .txt were allowed). After you have uploaded
-a file, you were able to share this file with a second user. This user could &ldquo;accept&rdquo; this file, which was then moved to the second users&rsquo; folder. This is also where I found the first vulnerability. When accepting a shared file, it was possible to modify the filename parameter and upload any file you want from the underlying system. I tried to find the flag with this, but my guesswork was not successfull.</p>
+<p>Firt I tried to upload some .php files, which did not work (only some extensions like .jpg or .txt were allowed). After you have uploaded a file, you were able to share this file with a second user. This user could &ldquo;accept&rdquo; this file, which was then moved to the second users&rsquo; folder. This is also where I found the first vulnerability. When accepting a shared file, it was possible to modify the filename parameter and upload any file you want from the underlying system. I tried to find the flag with this, but my guesswork was not successfull.</p>
 
 <h2 id="adding-a-php-handler-for-text-files">Adding a PHP handler for text files</h2>
 
@@ -139,7 +138,7 @@ a file, you were able to share this file with a second user. This user could &ld
 <pre><code>AddType application/x-httpd-php .txt
 </code></pre>
 
-<p>After upload this, I also submtited a foo.txt file with the following content:</p>
+<p>After uploading this, I also submtited a foo.txt file with the following content:</p>
 
 <pre><code class="language-php">&lt;?php system($_GET['c']); ?&gt;
 </code></pre>

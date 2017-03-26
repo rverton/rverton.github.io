@@ -27,8 +27,7 @@ login with some basic credentials like &lt;code&gt;admin1111:password&lt;/code&g
 &lt;li&gt;Logout&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;I tried first to upload some .php files, which did not work (only some formats like .jpg or .txt were allowed). After you have uploaded
-a file, you were able to share this file with a second user. This user could &amp;ldquo;accept&amp;rdquo; this file, which was then moved to the second users&amp;rsquo; folder. This is also where I found the first vulnerability. When accepting a shared file, it was possible to modify the filename parameter and upload any file you want from the underlying system. I tried to find the flag with this, but my guesswork was not successfull.&lt;/p&gt;
+&lt;p&gt;Firt I tried to upload some .php files, which did not work (only some extensions like .jpg or .txt were allowed). After you have uploaded a file, you were able to share this file with a second user. This user could &amp;ldquo;accept&amp;rdquo; this file, which was then moved to the second users&amp;rsquo; folder. This is also where I found the first vulnerability. When accepting a shared file, it was possible to modify the filename parameter and upload any file you want from the underlying system. I tried to find the flag with this, but my guesswork was not successfull.&lt;/p&gt;
 
 &lt;h2 id=&#34;adding-a-php-handler-for-text-files&#34;&gt;Adding a PHP handler for text files&lt;/h2&gt;
 
@@ -37,7 +36,7 @@ a file, you were able to share this file with a second user. This user could &am
 &lt;pre&gt;&lt;code&gt;AddType application/x-httpd-php .txt
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;After upload this, I also submtited a foo.txt file with the following content:&lt;/p&gt;
+&lt;p&gt;After uploading this, I also submtited a foo.txt file with the following content:&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-php&#34;&gt;&amp;lt;?php system($_GET[&#39;c&#39;]); ?&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
