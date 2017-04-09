@@ -2,6 +2,11 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</loc>
+    <lastmod>2017-03-26T13:15:12+02:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http://robinverton.de/ctf/volgactf-web200-sharepoint/</loc>
     <lastmod>2017-03-26T13:15:12+02:00</lastmod>
   </url>

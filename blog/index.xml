@@ -213,6 +213,8 @@ flag{to_rop_or_not_to_rop}
 
 &lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/cowroot.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
 
+&lt;p&gt;&lt;strong&gt;Hint&lt;/strong&gt;: After getting a shell, doing &lt;code&gt;echo 0 &amp;gt; /proc/sys/vm/dirty_writeback_centisecs&lt;/code&gt; may make the system more stable.&lt;/p&gt;
+
 &lt;p&gt;You can view my proof of concept here: &lt;a href=&#34;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&#34;&gt;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&lt;/a&gt;&lt;/p&gt;
 </description>
     </item>

