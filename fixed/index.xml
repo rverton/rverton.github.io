@@ -2,12 +2,14 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Fixed on Robin Verton</title>
-    <link>http://robinverton.de/fixed/index.xml</link>
+    <link>http://robinverton.de/fixed/</link>
     <description>Recent content in Fixed on Robin Verton</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>de-de</language>
     <lastBuildDate>Tue, 14 Feb 2017 10:49:43 +0100</lastBuildDate>
-    <atom:link href="http://robinverton.de/fixed/index.xml" rel="self" type="application/rss+xml" />
+    
+	<atom:link href="http://robinverton.de/fixed/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>stuff</title>
@@ -15,41 +17,10 @@
       <pubDate>Tue, 14 Feb 2017 10:49:43 +0100</pubDate>
       
       <guid>http://robinverton.de/stuff/</guid>
-      <description>&lt;p&gt;&lt;strong&gt;.projects&lt;/strong&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/dtag-dev-sec/explo&#34;&gt;explo&lt;/a&gt; - machine and human readable web exploits&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/xssmap&#34;&gt;xssmap&lt;/a&gt; - (DOM)XSS scanner&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/rverton/webanalyze&#34;&gt;webanalyze&lt;/a&gt; - uncovers technologies used on websites.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;strong&gt;.exploits&lt;/strong&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://gist.github.com/rverton/e9d4ff65d703a9084e85fa9df083c679&#34;&gt;cowroot.c&lt;/a&gt; - first weaponized DirtyCow exploit&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;strong&gt;.ctf&lt;/strong&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/&#34;&gt;ASIS CTF &amp;lsquo;17, web129 (Tar Bomb)&lt;/a&gt; - command injection&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/volgactf-web200-sharepoint/&#34;&gt;VolgaCTF &amp;lsquo;17, web200 (SharePoint)&lt;/a&gt; - abusing a file upload&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://robinverton.de/ctf/nullcon17-pwn200/&#34;&gt;nullcon &amp;lsquo;17, pwn200&lt;/a&gt; - format string .got overwrite&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;strong&gt;.advisories&lt;/strong&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/518466&#34;&gt;myBloggie 2.1.6 SQL-Injection&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/416684&#34;&gt;Affiliate Network Pro v7.2 SQL-Injection, Arbitrary Code Execution, XSS&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2005-3571&#34;&gt;Codegrrl Protection.PHP Unspecified Code Execution Vulnerability&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/417174&#34;&gt;PHP-Fusion &amp;lt;= 6.00.206 Multiple Vulnerabilities&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/424957/30/0/threaded&#34;&gt;dotproject &amp;lt;= 2.0.1 remote code execution&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://securityreason.com/securityalert/2337&#34;&gt;WebSpell &amp;gt; 4.0 Authentication Bypass and arbitrary code execution&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://securitytracker.com/alerts/2005/Sep/1014866.html&#34;&gt;WEB//NEWS SQL Injection&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.securityfocus.com/archive/1/410314/30/0/threaded&#34;&gt;PHP Nuke &amp;lt;= 7.8 Multiple SQL Injections&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-</description>
+      <description>.projects
+ explo - machine and human readable web exploits xssmap - (DOM)XSS scanner webanalyze - uncovers technologies used on websites.  .exploits
+ cowroot.c - first weaponized DirtyCow exploit  .ctf
+ Google CTF &amp;lsquo;17, web (Joe) - session fixiation and xss ASIS CTF &amp;lsquo;17, web129 (Tar Bomb) - command injection VolgaCTF &amp;lsquo;17, web200 (SharePoint) - abusing a file upload nullcon &amp;lsquo;17, pwn200 - format string .got overwrite  .</description>
     </item>
     
   </channel>

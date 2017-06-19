@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>http://robinverton.de/ctf/googlectf-2017-joe-web/</loc>
+    <lastmod>2017-06-19T13:15:12+02:00</lastmod>
+  </url>
   
   <url>
     <loc>http://robinverton.de/ctf/asisctf-2017-tar-bomb-web129/</loc>
@@ -88,8 +94,13 @@
   </url>
   
   <url>
+    <loc>http://robinverton.de/categories/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>http://robinverton.de/ctf/</loc>
-    <lastmod>2017-03-26T13:15:12+02:00</lastmod>
+    <lastmod>2017-06-19T13:15:12+02:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -101,7 +112,12 @@
   
   <url>
     <loc>http://robinverton.de/</loc>
-    <lastmod>2017-03-26T13:15:12+02:00</lastmod>
+    <lastmod>2017-06-19T13:15:12+02:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://robinverton.de/tags/</loc>
     <priority>0</priority>
   </url>
   
