@@ -17,7 +17,7 @@
       <pubDate>Mon, 19 Jun 2017 13:15:12 +0200</pubDate>
       
       <guid>http://robinverton.de/ctf/googlectf-2017-joe-web/</guid>
-      <description>Joe, your intelligent conversation partner For the Joe challenge, you got access to a simple page which looked like a chat. Over a text box you were able to talk with Joe, an &amp;ldquo;intelligent&amp;rdquo; converation partner/bot.
+      <description>Joe, your intelligent conversation partner For the Joe challenge, you got access to a simple page which looked like a chat. Over a text box you were able to talk with Joe, an &amp;ldquo;intelligent&amp;rdquo; conversation partner/bot.
 Joe had a few functionalities:
  Print out Joe&amp;rsquo;s name Set a new name Some small talk stuff Report a bug to an admin  The challenge description already told us to steal the admin cookie, so the last functionality (report a bug) was a good guess how we can interact with the admin.</description>
     </item>
