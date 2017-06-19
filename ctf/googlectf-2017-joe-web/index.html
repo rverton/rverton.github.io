@@ -35,11 +35,11 @@
 
 
     
-    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1497880194">
-    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1497880194">
-    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1497880194">
+    <link rel="stylesheet" href="http://robinverton.de/css/reset.css?t=1497880812">
+    <link rel="stylesheet" href="http://robinverton.de/css/pygments.css?t=1497880812">
+    <link rel="stylesheet" href="http://robinverton.de/css/main.css?t=1497880812">
     
-        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1497880194">
+        <link rel="stylesheet" href="http://robinverton.de/css/override.css?t=1497880812">
     
 
 
@@ -191,7 +191,7 @@ Content-Type: `text/html`
 <ul>
 <li>Prepare our session with some XSS payload as the name</li>
 <li>Send the admin to a link which logs him into our session. This will the also redirect him to the &ldquo;start&rdquo; page and execute our payload.</li>
-<li>Our payloads needs to take the cookie and sent it to our server.</li>
+<li>Our payloads needs to take the cookie and send it to our server.</li>
 </ul>
 
 <p>I then used a simple payload as Joe&rsquo;s new name (<code>let me rename you</code>) to send the cookie as a parameter to my server:</p>
@@ -203,7 +203,7 @@ Content-Type: `text/html`
 
 <p><img src="http://robinverton.de/static/ctf/googlectf-2017-joe-5.png" alt="" /></p>
 
-<p>As you can see here, I can&rsquo;t redirect the admin directly to the <code>/login?toke=...</code> url because it was too long. Do work around this I made a simple html file on my server and included this url in an iframe:</p>
+<p>As you can see here, I can&rsquo;t redirect the admin directly to the <code>/login?toke=...</code> url because it was too long. To work around this I made a simple html file on my server and included this url in an iframe:</p>
 
 <pre><code>&lt;html&gt;
 &lt;body&gt;
